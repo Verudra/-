@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>跨年互动地图 - 参与</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      padding: 30px;
+      max-width: 400px;
+      width: 100%;
+      animation: slideIn 0.5s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 1.8em;
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      color: #666;
+      font-size: 0.9em;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: bold;
+      font-size: 0.95em;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1em;
+      transition: border-color 0.3s;
+      font-family: inherit;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    input::placeholder {
+      color: #999;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 25px;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .submit-btn {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .message {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      text-align: center;
+      font-weight: bold;
+      display: none;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .message.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+
+    .success-animation {
+      text-align: center;
+      display: none;
+    }
+
+    .success-animation.show {
+      display: block;
+      animation: popIn 0.6s ease-out;
+    }
+
+    @keyframes popIn {
+      0% {
+        opacity: 0;
+        transform: scale(0.3);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.1);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .checkmark {
+      font-size: 3em;
+      margin-bottom: 15px;
+    }
+
+    .success-text {
+      font-size: 1.5em;
+      color: #667eea;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .province-name {
+      font-size: 1.2em;
+      color: #666;
+    }
+
+    .character-count {
+      font-size: 0.8em;
+      color: #999;
+      margin-top: 4px;
+    }
+
+    .error-text {
+      font-size: 0.85em;
+      color: #d9534f;
+      margin-top: 5px;
+      display: none;
+    }
+
+    .error-text.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎉 跨年互动地图</h1>
+      <p>点亮你的家乡</p>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <form id="form" style="display: none;">
+      <div class="form-group">
+        <label for="nickname">📝 昵称</label>
+        <input
+          type="text"
+          id="nickname"
+          placeholder="输入你的昵称（1-20字符）"
+          maxlength="20"
+          required
+        />
+        <div class="character-count">
+          <span id="charCount">0</span>/20
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="province">🗺️ 选择省份</label>
+        <select id="province" required>
+          <option value="">-- 请选择你所在的省份 --</option>
+        </select>
+        <div id="provinceError" class="error-text">请选择一个省份</div>
+      </div>
+
+      <div class="button-group">
+        <button type="submit" class="submit-btn" id="submitBtn">✨ 点亮我的家乡</button>
+      </div>
+    </form>
+
+    <div id="successAnimation" class="success-animation">
+      <div class="checkmark">✨</div>
+      <div class="success-text">提交成功！</div>
+      <div class="province-name" id="successProvince"></div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('form');
+    const messageEl = document.getElementById('message');
+    const nicknameInput = document.getElementById('nickname');
+    const provinceSelect = document.getElementById('province');
+    const submitBtn = document.getElementById('submitBtn');
+    const successAnimation = document.getElementById('successAnimation');
+    const charCountSpan = document.getElementById('charCount');
+
+    // 加载省份列表
+    async function loadProvinces() {
+      try {
+        const response = await fetch('/api/provinces');
+        if (!response.ok) {
+          throw new Error('加载失败');
+        }
+        const provinces = await response.json();
+
+        provinces.forEach(province => {
+          const option = document.createElement('option');
+          option.value = province.id;
+          option.textContent = province.name;
+          provinceSelect.appendChild(option);
+        });
+
+        form.style.display = 'block';
+        nicknameInput.focus();
+      } catch (error) {
+        showMessage('❌ 加载省份列表失败，请刷新重试', 'error');
+        console.error(error);
+      }
+    }
+
+    // 更新字符计数
+    nicknameInput.addEventListener('input', () => {
+      charCountSpan.textContent = nicknameInput.value.length;
+    });
+
+    // 显示消息
+    function showMessage(text, type = 'info') {
+      messageEl.textContent = text;
+      messageEl.className = `message show ${type}`;
+      if (type !== 'success') {
+        setTimeout(() => {
+          messageEl.classList.remove('show');
+        }, 3000);
+      }
+    }
+
+    // 防重复提交
+    let isSubmitting = false;
+
+    // 提交表单
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // 防止重复提交
+      if (isSubmitting) {
+        return;
+      }
+
+      const nickname = nicknameInput.value.trim();
+      const provinceId = provinceSelect.value;
+
+      // 验证
+      if (!nickname) {
+        showMessage('❌ 昵称不能为空', 'error');
+        nicknameInput.focus();
+        return;
+      }
+
+      if (!provinceId) {
+        showMessage('❌ 请选择省份', 'error');
+        provinceSelect.focus();
+        return;
+      }
+
+      // 禁用提交按钮
+      isSubmitting = true;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="loading-spinner"></span>提交中...';
+
+      try {
+        const response = await fetch('/api/submissions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            nickname,
+            provinceId
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.status === 429) {
+          showMessage('⚠️ ' + data.message, 'error');
+          isSubmitting = false;
+          submitBtn.disabled = false;
+          submitBtn.textContent = '✨ 点亮我的家乡';
+          return;
+        }
+
+        if (data.ok) {
+          // 显示成功动画
+          form.style.display = 'none';
+          successAnimation.classList.add('show');
+          document.getElementById('successProvince').innerHTML = 
+            `已点亮：<span style="color: #ffb74d; font-weight: bold;">${data.provinceName}</span>`;
+
+          // 3秒后重置表单
+          setTimeout(() => {
+            resetForm();
+          }, 3000);
+        } else {
+          showMessage('❌ ' + data.message, 'error');
+          isSubmitting = false;
+          submitBtn.disabled = false;
+          submitBtn.textContent = '✨ 点亮我的家乡';
+        }
+      } catch (error) {
+        showMessage('❌ 网络错误，请检查连接并重试', 'error');
+        isSubmitting = false;
+        submitBtn.disabled = false;
+        submitBtn.textContent = '✨ 点亮我的家乡';
+        console.error(error);
+      }
+    });
+
+    // 重置表单
+    function resetForm() {
+      form.style.display = 'block';
+      successAnimation.classList.remove('show');
+      form.reset();
+      charCountSpan.textContent = '0';
+      isSubmitting = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = '✨ 点亮我的家乡';
+      nicknameInput.focus();
+    }
+
+    // 页面加载
+    window.addEventListener('load', loadProvinces);
+  </script>
+</body>
+</html>
