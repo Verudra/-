@@ -13,3 +13,4 @@ build/
 yarn.lock
 data/
 .cache/
+docs/

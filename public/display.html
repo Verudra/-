@@ -85,29 +85,194 @@
     .content {
       flex: 1;
       display: flex;
-      justify-content: center;
-      align-items: center;
       position: relative;
       overflow: hidden;
+      gap: 18px;
+      padding: 18px;
+      align-items: stretch;
+    }
+
+    .map-area {
+      flex: 1;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      border: 2px solid rgba(102, 126, 234, 0.35);
+    }
+
+    .right-column {
+      width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.35);
+      border-left: 3px solid rgba(102, 126, 234, 0.7);
+      padding: 14px 14px 14px 18px;
+    }
+
+    .side-panel {
+      background: rgba(0, 0, 0, 0.86);
+      padding: 18px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(102, 126, 234, 0.3);
+      z-index: 50;
     }
 
     #map {
       width: 100%;
       height: 100%;
+      transition: opacity 0.3s ease-in-out;
     }
 
-    .bottom-info {
+    /* 加载指示器样式 */
+    .loading-overlay {
       position: absolute;
-      bottom: 30px;
-      left: 30px;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 20px;
-      border-radius: 12px;
-      backdrop-filter: blur(10px);
-      border: 2px solid rgba(102, 126, 234, 0.3);
-      z-index: 100;
-      max-width: 200px;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease-in-out;
+      background: transparent;
+      pointer-events: none;
     }
+
+    .loading-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .loading-panel {
+      min-width: 260px;
+      max-width: 360px;
+      padding: 18px 20px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.68);
+      border: 2px solid rgba(102, 126, 234, 0.35);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      pointer-events: auto;
+    }
+
+    .loading-spinner {
+      width: 46px;
+      height: 46px;
+      border: 4px solid rgba(102, 126, 234, 0.3);
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 14px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      color: #fff;
+      font-size: 1.05em;
+      margin-bottom: 6px;
+    }
+
+    .loading-subtext {
+      color: #aaa;
+      font-size: 0.9em;
+    }
+
+    /* 地图层级指示器 */
+    .level-indicator {
+      position: absolute;
+      top: 30px;
+      right: 30px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px 20px;
+      border-radius: 25px;
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(102, 126, 234, 0.5);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .level-indicator.pulse {
+      animation: pulse 0.6s ease-in-out;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .level-text {
+      color: #fff;
+      font-size: 0.9em;
+      font-weight: bold;
+    }
+
+    .level-icon {
+      width: 8px;
+      height: 8px;
+      background: #667eea;
+      border-radius: 50%;
+      animation: blink 2s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* 错误提示样式 */
+    .error-toast {
+      position: absolute;
+      top: 100px;
+      right: 30px;
+      background: rgba(244, 67, 54, 0.9);
+      color: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      backdrop-filter: blur(10px);
+      z-index: 1001;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(100px);
+      transition: all 0.3s ease-in-out;
+      max-width: 300px;
+    }
+
+    .error-toast.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(0);
+    }
+
+    .error-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .error-message {
+      font-size: 0.9em;
+      line-height: 1.4;
+    }
+
+    /* QR 展示放入右侧栏，这里不再使用绝对定位面板 */
 
     .qrcode-section {
       text-align: center;
@@ -153,7 +318,11 @@
       text-align: left;
     }
 
-    .lit-list-title {
+    .history-list {
+      margin-top: 12px;
+    }
+
+    .history-title {
       color: #aaa;
       font-size: 0.8em;
       text-transform: uppercase;
@@ -161,77 +330,78 @@
       letter-spacing: 1px;
     }
 
-    .lit-provinces {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      max-height: 80px;
-      overflow-y: auto;
+    .history-box {
+      max-height: 260px;
+      overflow: hidden;
+      border-radius: 8px;
+      border: 1px solid rgba(102, 126, 234, 0.25);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 10px 12px;
     }
 
-    .province-tag {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 0.75em;
+    .history-item {
+      font-size: 0.85em;
+      color: #ddd;
+      line-height: 1.6;
       white-space: nowrap;
-      animation: fadeIn 0.5s ease-out;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: scale(0.8);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
+    .history-item .name {
+      color: #ffb74d;
+      font-weight: bold;
+    }
+
+    .history-item .place {
+      color: #b6c2ff;
+      font-weight: bold;
     }
 
     .admin-panel {
-      position: absolute;
-      bottom: 30px;
-      right: 30px;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 20px;
-      border-radius: 12px;
-      border: 2px solid rgba(255, 107, 107, 0.3);
-      backdrop-filter: blur(10px);
-      z-index: 100;
+      background: transparent;
+      padding: 0;
+      border-radius: 0;
+      border: none;
     }
 
-    .admin-title {
-      color: #aaa;
-      font-size: 0.85em;
-      margin-bottom: 12px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
+    /* 已点亮模块已移除 */
 
     .admin-btn {
-      background: linear-gradient(135deg, #ff6b6b, #ff8787);
+      background: linear-gradient(135deg, #667eea, #764ba2);
       color: white;
       border: none;
-      padding: 10px 16px;
-      border-radius: 8px;
+      padding: 11px 14px;
+      border-radius: 10px;
       cursor: pointer;
-      font-size: 0.9em;
+      font-size: 0.92em;
       font-weight: bold;
-      transition: all 0.3s;
+      transition: all 0.2s ease;
       display: block;
       width: 100%;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+      box-shadow: 0 6px 18px rgba(102, 126, 234, 0.25);
     }
 
-    .admin-btn:last-child {
-      margin-bottom: 0;
+    .admin-btn.secondary {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(102, 126, 234, 0.55);
+      box-shadow: none;
     }
+
+    .admin-btn.danger {
+      background: linear-gradient(135deg, #ff6b6b, #ff8787);
+      box-shadow: 0 6px 18px rgba(255, 107, 107, 0.25);
+    }
+
 
     .admin-btn:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+      box-shadow: 0 10px 26px rgba(102, 126, 234, 0.35);
+    }
+
+    .admin-btn.danger:hover:not(:disabled) {
+      box-shadow: 0 10px 26px rgba(255, 107, 107, 0.35);
     }
 
     .admin-btn:disabled {
@@ -241,8 +411,8 @@
 
     .connection-status {
       position: absolute;
-      top: 15px;
-      right: 15px;
+      top: 30px;
+      left: 30px;
       padding: 10px 16px;
       border-radius: 25px;
       font-size: 0.9em;
@@ -342,30 +512,63 @@
     </div>
 
     <div class="content">
-      <div id="map"></div>
+      <div class="map-area">
+        <div id="map"></div>
 
-      <div class="connection-status disconnected" id="status">
-        <span class="status-dot"></span>
-        <span id="statusText">连接中...</span>
+        <!-- 加载指示器 -->
+        <div class="loading-overlay" id="loadingOverlay">
+          <div class="loading-panel">
+            <div class="loading-spinner"></div>
+            <div class="loading-text" id="loadingText">加载地图数据中...</div>
+            <div class="loading-subtext" id="loadingSubtext">请稍候</div>
+          </div>
+        </div>
+
+        <!-- 地图层级指示器 -->
+        <div class="level-indicator" id="levelIndicator">
+          <div class="level-icon"></div>
+          <div class="level-text" id="levelText">省级地图</div>
+        </div>
+
+        <!-- 错误提示 -->
+        <div class="error-toast" id="errorToast">
+          <div class="error-title">加载失败</div>
+          <div class="error-message" id="errorMessage">地图数据加载失败，请重试</div>
+        </div>
+
+        <!-- 连接状态（左上角） -->
+        <div class="connection-status disconnected" id="status">
+          <span class="status-dot"></span>
+          <span id="statusText">连接中...</span>
+        </div>
+
       </div>
 
-      <div class="bottom-info">
-        <div class="qrcode-section">
-          <p>📱 扫码参与</p>
-          <div id="qrcode"></div>
-          <div class="url-display" id="urlDisplay"></div>
+      <!-- 右侧栏目：已点亮 + 点亮记录 -->
+      <div class="right-column">
+        <div class="side-panel">
+          <div class="history-list">
+            <div class="history-title">🕒 点亮记录（滚动）</div>
+            <div class="history-box" id="historyBox"></div>
+          </div>
         </div>
-        <div class="divider"></div>
-        <div class="lit-list">
-          <div class="lit-list-title">✨ 已点亮</div>
-          <div class="lit-provinces scrollbar-hide" id="litProvinces"></div>
-        </div>
-      </div>
 
-      <div class="admin-panel">
-        <div class="admin-title">⚙️ 管理</div>
-        <button class="admin-btn" onclick="resetMap()">🔄 重置地图</button>
-        <button class="admin-btn" onclick="downloadStats()">📥 导出数据</button>
+        <div class="side-panel">
+          <div class="qrcode-section">
+            <p>📱 扫码参与</p>
+            <div id="qrcode"></div>
+            <div class="url-display" id="urlDisplay"></div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="admin-panel">
+            <div class="admin-title">⚙️ 管理</div>
+            <button class="admin-btn" onclick="initializeMapView()">🧭 初始化视图</button>
+            <button class="admin-btn danger" onclick="resetMap()">🔄 重置数据</button>
+            <button class="admin-btn secondary" onclick="downloadStats()">📥 导出数据</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -373,16 +576,326 @@
   <script>
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     let chart = null;
-    let provinceLitState = {};
+    let chartReady = false;
+    let pendingMapUpdate = false;
+    let litRegionState = {};
+    let litRegionsMetaById = {};
+    let historyItems = [];
+    let historyTimer = null;
 
     const ws = new WebSocket(`${wsProtocol}//${window.location.host}`);
     let provinces = [];
 
+    // 地图层级管理
+    let currentMapLevel = 'province'; // province/city/district
+    let geoDataCache = {}; // 缓存不同层级的地图数据
+    let currentViewRegion = null; // 当前聚焦的省份/城市
+
+    // 点击选择的钻取状态
+    let selectedProvince = null; // {code,name}
+    let selectedCity = null; // {code,name}
+    let selectedCitiesGeoJson = null; // 当前省份的市级 GeoJSON
+
+    // 交互序列号：用于取消/忽略过期的异步钻取结果（解决“退回省级后颜色/边界被旧请求覆盖”的竞态）
+    let drillSeq = 0;
+
+    // 自动聚焦：新点亮后自动移动到对应区域，并在 3 秒后自动回全国（若用户未操作）
+    let autoReturnTimer = null;
+    let autoReturnActive = false;
+    let autoReturnCancelledByUser = false;
+
+    // 自动聚焦队列：按到达顺序串行执行，避免多个点亮请求互相打断
+    const autoFocusQueue = [];
+    let autoFocusProcessing = false;
+
+    // 地图上“步骤提示”文字（省/市/区县）
+    let focusLabelTimer = null;
+
+    function delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function pickFeatureCoord(feature) {
+      const props = feature?.properties || {};
+      const c = props?.centroid || props?.center || props?.cp;
+      if (!Array.isArray(c) || c.length !== 2) return null;
+      const x = Number(c[0]);
+      const y = Number(c[1]);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+      return [x, y];
+    }
+
+    function clearFocusLabel() {
+      if (focusLabelTimer) clearTimeout(focusLabelTimer);
+      focusLabelTimer = null;
+      if (!chart || !chartReady) return;
+      chart.setOption(
+        {
+          graphic: [
+            {
+              id: 'focusLabel',
+              $action: 'remove'
+            }
+          ]
+        },
+        { notMerge: false, lazyUpdate: true, silent: true }
+      );
+    }
+
+    function showFocusLabel(text, coord, durationMs = 1000) {
+      if (!chart || !chartReady) return;
+      if (!text || !coord) return;
+      clearFocusLabel();
+      const px = chart.convertToPixel({ geoIndex: 0 }, coord);
+      if (!Array.isArray(px) || px.length !== 2) return;
+      const left = Number(px[0]);
+      const top = Number(px[1]);
+      if (!Number.isFinite(left) || !Number.isFinite(top)) return;
+
+      chart.setOption(
+        {
+          graphic: [
+            {
+              id: 'focusLabel',
+              type: 'text',
+              silent: true,
+              left,
+              top,
+              style: {
+                text: String(text),
+                fill: '#ffb74d',
+                font: '700 20px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+                textAlign: 'center',
+                textVerticalAlign: 'middle',
+                stroke: 'rgba(0,0,0,0.55)',
+                lineWidth: 4
+              },
+              z: 999
+            }
+          ]
+        },
+        { notMerge: false, lazyUpdate: true, silent: true }
+      );
+
+      focusLabelTimer = setTimeout(() => clearFocusLabel(), durationMs);
+    }
+
+    function enqueueAutoFocus(matched, cascadeIds) {
+      if (!matched) return;
+      autoFocusQueue.push({ matched, cascadeIds, receivedAt: Date.now() });
+      processAutoFocusQueue();
+    }
+
+    async function processAutoFocusQueue() {
+      if (autoFocusProcessing) return;
+      if (!chart || !chartReady) return;
+      autoFocusProcessing = true;
+      try {
+        while (autoFocusQueue.length > 0) {
+          const item = autoFocusQueue.shift();
+          try {
+            await autoFocusToMatched(item.matched, item.cascadeIds);
+          } catch (e) {
+            console.error('自动聚焦执行失败:', e);
+          }
+          // 给下一条一点喘息，避免 UI 过于密集
+          await delay(120);
+        }
+      } finally {
+        autoFocusProcessing = false;
+      }
+    }
+
+    // 初始全国视图：稍微放大一点
+    const INITIAL_VIEW = {
+      center: [104.0, 35.0],
+      zoom: 1.45
+    };
+
+    // 颜色映射（按点亮次数）
+    const COLOR_L1 = '#f6cec1'; // 淡桃红色 RGB(246,206,193)
+    const COLOR_L2 = '#e8b49a'; // 玉粉红 RGB(232,180,154)
+    const COLOR_L3 = '#f0945d'; // 海螺橙 RGB(240,148,93)
+
+    function colorForCount(count) {
+      const c = Number(count || 0);
+      if (c >= 20) return COLOR_L3;
+      if (c < 5) return COLOR_L1;
+      // 5~19：按需求未给出更细分色阶，统一用玉粉红
+      return COLOR_L2;
+    }
+
+    function isAdcode6(s) {
+      return /^\d{6}$/.test(String(s || ''));
+    }
+
+    function isProvinceAdcode(s) {
+      const x = String(s || '');
+      return isAdcode6(x) && x.endsWith('0000');
+    }
+
+    function isCityAdcode(s) {
+      const x = String(s || '');
+      return isAdcode6(x) && x.endsWith('00') && !x.endsWith('0000');
+    }
+
+    function isDistrictAdcode(s) {
+      const x = String(s || '');
+      return isAdcode6(x) && !x.endsWith('00');
+    }
+
+    function inferLevelFromAdcode(id) {
+      const s = String(id || '').trim();
+      if (!isAdcode6(s)) return null;
+      if (s.endsWith('0000')) return 'province';
+      if (s.endsWith('00')) return 'city';
+      return 'district';
+    }
+
+    function provinceIdFromAny(id) {
+      const s = String(id || '').trim();
+      if (!isAdcode6(s)) return null;
+      return s.slice(0, 2) + '0000';
+    }
+
+    function cityIdFromAny(id) {
+      const s = String(id || '').trim();
+      if (!isAdcode6(s)) return null;
+      return s.slice(0, 4) + '00';
+    }
+
+    function cancelAutoReturn() {
+      if (autoReturnTimer) clearTimeout(autoReturnTimer);
+      autoReturnTimer = null;
+      autoReturnActive = false;
+      autoReturnCancelledByUser = false;
+    }
+
+    function cancelAutoReturnByUser() {
+      if (!autoReturnActive) return;
+      autoReturnCancelledByUser = true;
+      if (autoReturnTimer) clearTimeout(autoReturnTimer);
+      autoReturnTimer = null;
+      autoReturnActive = false;
+    }
+
+    function scheduleAutoReturnToNational() {
+      cancelAutoReturn();
+      autoReturnActive = true;
+      autoReturnCancelledByUser = false;
+      autoReturnTimer = setTimeout(async () => {
+        if (autoReturnCancelledByUser) return;
+        autoReturnActive = false;
+        await goToInitialView({ showToast: false });
+      }, 3000);
+    }
+
+    function buildFeatureNameById(geojson) {
+      const out = new Map();
+      const features = Array.isArray(geojson?.features) ? geojson.features : [];
+      for (const f of features) {
+        const props = f?.properties || {};
+        const id = pickAdcode(props);
+        const name = String(props.name || props.NAME || props.fullname || '').trim();
+        if (id && name && !out.has(String(id))) out.set(String(id), name);
+      }
+      return out;
+    }
+
+    let provinceFeatureNameById = new Map();
+    let provinceFeatureById = new Map();
+    let cityFeatureNameById = new Map();
+    let cityFeatureById = new Map();
+    let districtFeatureNameById = new Map();
+    let districtFeatureById = new Map();
+
+    // 地图层级切换阈值
+    const ZOOM_THRESHOLD = {
+      PROVINCE_TO_CITY: 2.5,    // 省级 -> 市级 的缩放阈值
+      CITY_TO_DISTRICT: 4.0      // 市级 -> 区县级 的缩放阈值
+    };
+
+    // UI控制元素
+    const ui = {
+      loadingOverlay: document.getElementById('loadingOverlay'),
+      loadingText: document.getElementById('loadingText'),
+      loadingSubtext: document.getElementById('loadingSubtext'),
+      levelIndicator: document.getElementById('levelIndicator'),
+      levelText: document.getElementById('levelText'),
+      errorToast: document.getElementById('errorToast'),
+      errorMessage: document.getElementById('errorMessage'),
+      mapElement: document.getElementById('map')
+    };
+
+    // 防抖控制器
+    let debounceTimer = null;
+    const DEBOUNCE_DELAY = 300; // 防抖延迟时间（毫秒）
+
+    // UI控制函数
+    const UIController = {
+      // 显示/隐藏加载指示器
+      showLoading(text = '加载地图数据中...', subtext = '请稍候') {
+        ui.loadingText.textContent = text;
+        ui.loadingSubtext.textContent = subtext;
+        ui.loadingOverlay.classList.add('active');
+        // 只做轻微降亮，避免“闪屏/晃眼”
+        ui.mapElement.style.opacity = '0.88';
+      },
+
+      hideLoading() {
+        ui.loadingOverlay.classList.remove('active');
+        ui.mapElement.style.opacity = '1';
+      },
+
+      // 更新层级指示器
+      updateLevelIndicator(level, regionName = '') {
+        const levelNames = {
+          'province': '省级地图',
+          'city': '市级地图',
+          'district': '区县级地图',
+          'layered': '叠加地图'
+        };
+
+        let displayText = levelNames[level] || '未知层级';
+        if (level === 'layered' && regionName) {
+          displayText = regionName;
+        } else if (regionName && level !== 'province') {
+          displayText = `${regionName} - ${displayText}`;
+        }
+
+        ui.levelText.textContent = displayText;
+        ui.levelIndicator.classList.add('pulse');
+
+        // 移除动画类
+        setTimeout(() => {
+          ui.levelIndicator.classList.remove('pulse');
+        }, 600);
+      },
+
+      // 显示错误提示
+      showError(title = '加载失败', message = '操作失败，请重试') {
+        ui.errorToast.querySelector('.error-title').textContent = title;
+        ui.errorMessage.textContent = message;
+        ui.errorToast.classList.add('show');
+
+        // 自动隐藏错误提示
+        setTimeout(() => {
+          ui.errorToast.classList.remove('show');
+        }, 5000);
+      },
+
+      // 隐藏错误提示
+      hideError() {
+        ui.errorToast.classList.remove('show');
+      }
+    };
+
     async function ensureChinaMapRegistered() {
       if (echarts.getMap && echarts.getMap('china')) return;
 
-      // 优先加载本地内置地图（推荐：无外网/弱网也能渲染）
-      // 文件位置：public/vendor/echarts/map/json/china.json
+      // 优先加载后端提供的 GeoJSON（支持县/区级，若无则后端自动回退到省级）
+      const apiUrl = '/api/geo/china';
+      // 次选加载本地内置地图（无外网/弱网也能渲染）
       const localUrl = '/vendor/echarts/map/json/china.json';
       const fallbackUrl = 'https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json';
 
@@ -394,49 +907,28 @@
 
       let geojson;
       try {
-        geojson = await tryFetch(localUrl);
+        geojson = await tryFetch(apiUrl);
       } catch (e) {
         console.warn(e);
-        geojson = await tryFetch(fallbackUrl);
+        try {
+          geojson = await tryFetch(localUrl);
+        } catch (e2) {
+          console.warn(e2);
+          geojson = await tryFetch(fallbackUrl);
+        }
       }
 
       echarts.registerMap('china', geojson);
     }
 
-    // 地理坐标（省份中心点）
-    const geoCoords = {
-      '11': [116.4074, 39.9042], // 北京
-      '12': [117.2008, 39.0842], // 天津
-      '13': [114.5149, 38.0428], // 河北
-      '14': [112.5489, 37.8706], // 山西
-      '15': [111.6709, 40.8183], // 内蒙古
-      '21': [123.4328, 41.8045], // 辽宁
-      '22': [125.3245, 43.8963], // 吉林
-      '23': [126.5349, 45.8038], // 黑龙江
-      '31': [121.4737, 31.2304], // 上海
-      '32': [118.8951, 32.8760], // 江苏
-      '33': [120.1551, 30.2741], // 浙江
-      '34': [117.2272, 31.8604], // 安徽
-      '35': [119.2965, 26.0745], // 福建
-      '36': [115.8581, 28.6829], // 江西
-      '37': [117.1208, 36.6519], // 山东
-      '41': [113.6254, 34.7466], // 河南
-      '42': [114.3054, 30.5931], // 湖北
-      '43': [112.9387, 28.2282], // 湖南
-      '44': [113.2643, 23.1291], // 广东
-      '45': [108.3665, 22.8170], // 广西
-      '46': [110.1999, 19.0442], // 海南
-      '50': [106.5516, 29.5630], // 重庆
-      '51': [104.0658, 30.5728], // 四川
-      '52': [106.7134, 26.5783], // 贵州
-      '53': [102.7103, 24.8801], // 云南
-      '54': [91.1865, 29.6470],  // 西藏
-      '61': [109.1162, 34.2659], // 陕西
-      '62': [103.8343, 36.0611], // 甘肃
-      '63': [101.7782, 36.6171], // 青海
-      '64': [106.2586, 38.4680], // 宁夏
-      '65': [87.6278, 43.7921]   // 新疆
-    };
+    function getCentroidByRegionId(id) {
+      const meta = litRegionsMetaById[String(id)];
+      const c = meta?.centroid;
+      if (Array.isArray(c) && c.length === 2 && Number.isFinite(Number(c[0])) && Number.isFinite(Number(c[1]))) {
+        return [Number(c[0]), Number(c[1])];
+      }
+      return null;
+    }
 
     function clamp01(x) {
       return Math.max(0, Math.min(1, x));
@@ -469,166 +961,1526 @@
     }
 
     // 初始化 ECharts
-    function initChart() {
+    let CHINA_BOUNDING_COORDS = null;
+
+    function computeBoundingCoords(geojson) {
+      const features = Array.isArray(geojson?.features) ? geojson.features : [];
+      let minLng = Infinity;
+      let minLat = Infinity;
+      let maxLng = -Infinity;
+      let maxLat = -Infinity;
+
+      function visitCoords(coords) {
+        if (!coords) return;
+        if (typeof coords[0] === 'number' && typeof coords[1] === 'number') {
+          const lng = coords[0];
+          const lat = coords[1];
+          if (Number.isFinite(lng) && Number.isFinite(lat)) {
+            minLng = Math.min(minLng, lng);
+            maxLng = Math.max(maxLng, lng);
+            minLat = Math.min(minLat, lat);
+            maxLat = Math.max(maxLat, lat);
+          }
+          return;
+        }
+        if (Array.isArray(coords)) {
+          for (const c of coords) visitCoords(c);
+        }
+      }
+
+      for (const f of features) {
+        visitCoords(f?.geometry?.coordinates);
+      }
+
+      if (![minLng, minLat, maxLng, maxLat].every(Number.isFinite)) return null;
+      // ECharts: [[leftTopLng, leftTopLat], [rightBottomLng, rightBottomLat]]
+      return [
+        [minLng, maxLat],
+        [maxLng, minLat]
+      ];
+    }
+
+    function getBaseGeoView() {
+      const opt = chart?.getOption ? chart.getOption() : null;
+      const baseGeo = Array.isArray(opt?.geo) ? opt.geo[0] : opt?.geo;
+      return {
+        center: baseGeo?.center,
+        zoom: baseGeo?.zoom
+      };
+    }
+
+    function syncOverlayGeoView() {
+      if (!chart) return;
+      const { center, zoom } = getBaseGeoView();
+      chart.setOption(
+        {
+          geo: [
+            {},
+            { center, zoom },
+            { center, zoom }
+          ]
+        },
+        { notMerge: false }
+      );
+    }
+
+    function clamp(n, min, max) {
+      return Math.max(min, Math.min(max, n));
+    }
+
+    function easeInOutCubic(t) {
+      const x = clamp(t, 0, 1);
+      return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+    }
+
+    function animateGeoViewTo(targetCenter, targetZoom, durationMs = 700) {
+      if (!chart || !chartReady) return Promise.resolve();
+      if (!Array.isArray(targetCenter) || targetCenter.length !== 2) return Promise.resolve();
+      if (!Number.isFinite(targetCenter[0]) || !Number.isFinite(targetCenter[1])) return Promise.resolve();
+
+      const start = performance.now();
+      const base = getBaseGeoView();
+      const startCenter = Array.isArray(base.center) ? base.center.slice() : null;
+      const startZoom = Number.isFinite(base.zoom) ? Number(base.zoom) : 1;
+
+      if (!startCenter) {
+        chart.setOption(
+          {
+            geo: [
+              { center: targetCenter, zoom: targetZoom },
+              { center: targetCenter, zoom: targetZoom },
+              { center: targetCenter, zoom: targetZoom }
+            ]
+          },
+          { notMerge: false }
+        );
+        return Promise.resolve();
+      }
+
+      return new Promise((resolve) => {
+        function step(now) {
+          const t = (now - start) / durationMs;
+          const k = easeInOutCubic(t);
+          const center = [
+            startCenter[0] + (targetCenter[0] - startCenter[0]) * k,
+            startCenter[1] + (targetCenter[1] - startCenter[1]) * k
+          ];
+          const zoom = startZoom + (targetZoom - startZoom) * k;
+          chart.setOption(
+            {
+              geo: [
+                { center, zoom },
+                { center, zoom },
+                { center, zoom }
+              ]
+            },
+            { notMerge: false, lazyUpdate: true, silent: true }
+          );
+          if (t < 1) {
+            requestAnimationFrame(step);
+          } else {
+            resolve();
+          }
+        }
+        requestAnimationFrame(step);
+      });
+    }
+
+    function computeBBoxFromCoords(coords, bbox) {
+      if (!coords) return bbox;
+      if (typeof coords[0] === 'number' && typeof coords[1] === 'number') {
+        const lon = Number(coords[0]);
+        const lat = Number(coords[1]);
+        if (Number.isFinite(lon) && Number.isFinite(lat)) {
+          bbox.minLon = Math.min(bbox.minLon, lon);
+          bbox.maxLon = Math.max(bbox.maxLon, lon);
+          bbox.minLat = Math.min(bbox.minLat, lat);
+          bbox.maxLat = Math.max(bbox.maxLat, lat);
+        }
+        return bbox;
+      }
+      if (Array.isArray(coords)) {
+        for (const c of coords) computeBBoxFromCoords(c, bbox);
+      }
+      return bbox;
+    }
+
+    function featureLonLatBBox(feature) {
+      const geom = feature?.geometry;
+      if (!geom) return null;
+      const bbox = { minLon: Infinity, maxLon: -Infinity, minLat: Infinity, maxLat: -Infinity };
+      computeBBoxFromCoords(geom.coordinates, bbox);
+      if (!Number.isFinite(bbox.minLon) || !Number.isFinite(bbox.maxLon) || !Number.isFinite(bbox.minLat) || !Number.isFinite(bbox.maxLat)) return null;
+      return bbox;
+    }
+
+    function computeProvinceTargetZoom(provinceFeature) {
+      const pb = featureLonLatBBox(provinceFeature);
+      if (!pb || !CHINA_BOUNDING_COORDS) return null;
+      const cMin = CHINA_BOUNDING_COORDS?.[0];
+      const cMax = CHINA_BOUNDING_COORDS?.[1];
+      if (!Array.isArray(cMin) || !Array.isArray(cMax)) return null;
+
+      const chinaLonRange = Math.max(1e-6, Math.abs(Number(cMax[0]) - Number(cMin[0])));
+      const chinaLatRange = Math.max(1e-6, Math.abs(Number(cMax[1]) - Number(cMin[1])));
+      const provLonRange = Math.max(1e-6, Math.abs(pb.maxLon - pb.minLon));
+      const provLatRange = Math.max(1e-6, Math.abs(pb.maxLat - pb.minLat));
+
+      // 目标：省份大致占视野 78%（稍微更放大一些；一次性算出“合适 zoom”，过大则缩小，过小则放大）
+      const k = 0.78;
+      const zLon = (chinaLonRange / provLonRange) * k;
+      const zLat = (chinaLatRange / provLatRange) * k;
+      const z = Math.min(zLon, zLat);
+      return clamp(z, 1.2, 6.0);
+    }
+
+    function computeCityTargetZoom(cityFeature) {
+      const cb = featureLonLatBBox(cityFeature);
+      if (!cb || !CHINA_BOUNDING_COORDS) return null;
+      const cMin = CHINA_BOUNDING_COORDS?.[0];
+      const cMax = CHINA_BOUNDING_COORDS?.[1];
+      if (!Array.isArray(cMin) || !Array.isArray(cMax)) return null;
+
+      const chinaLonRange = Math.max(1e-6, Math.abs(Number(cMax[0]) - Number(cMin[0])));
+      const chinaLatRange = Math.max(1e-6, Math.abs(Number(cMax[1]) - Number(cMin[1])));
+      const cityLonRange = Math.max(1e-6, Math.abs(cb.maxLon - cb.minLon));
+      const cityLatRange = Math.max(1e-6, Math.abs(cb.maxLat - cb.minLat));
+
+      // 目标：城市在视野中更大一些，方便点区县
+      const k = 0.92;
+      const zLon = (chinaLonRange / cityLonRange) * k;
+      const zLat = (chinaLatRange / cityLatRange) * k;
+      const z = Math.min(zLon, zLat);
+      return clamp(z, 2.2, 12.0);
+    }
+
+    function computeDistrictTargetZoom(districtFeature) {
+      const db = featureLonLatBBox(districtFeature);
+      if (!db || !CHINA_BOUNDING_COORDS) return null;
+      const cMin = CHINA_BOUNDING_COORDS?.[0];
+      const cMax = CHINA_BOUNDING_COORDS?.[1];
+      if (!Array.isArray(cMin) || !Array.isArray(cMax)) return null;
+
+      const chinaLonRange = Math.max(1e-6, Math.abs(Number(cMax[0]) - Number(cMin[0])));
+      const chinaLatRange = Math.max(1e-6, Math.abs(Number(cMax[1]) - Number(cMin[1])));
+      const dLonRange = Math.max(1e-6, Math.abs(db.maxLon - db.minLon));
+      const dLatRange = Math.max(1e-6, Math.abs(db.maxLat - db.minLat));
+
+      const k = 1.10;
+      const zLon = (chinaLonRange / dLonRange) * k;
+      const zLat = (chinaLatRange / dLatRange) * k;
+      const z = Math.min(zLon, zLat);
+      return clamp(z, 4.0, 18.0);
+    }
+
+    // 初始化地图
+    async function initChart() {
       const container = document.getElementById('map');
       if (chart) {
         chart.dispose();
       }
       chart = echarts.init(container);
+      chartReady = false;
 
-      const option = {
-        backgroundColor: 'transparent',
-        geo: {
-          map: 'china',
-          roam: true,
-          regions: [],
-          label: {
-            emphasis: {
-              show: true,
-              color: '#fff'
-            }
-          },
-          itemStyle: {
-            normal: {
-              areaColor: '#323c48',
-              borderColor: '#516b7d',
-              borderWidth: 1.2
-            },
-            emphasis: {
-              areaColor: '#404a5f'
-            }
-          }
-        },
-        series: [
-          {
-            name: '已点亮',
-            type: 'scatter',
-            coordinateSystem: 'geo',
-            data: [],
-            symbolSize: 18,
-            label: {
-              formatter: '{b}',
-              position: 'bottom',
-              show: false,
-              color: '#fff',
-              fontSize: 12
-            },
-            itemStyle: {
-              color: '#ffb74d',
-              shadowBlur: 10,
-              shadowColor: '#ffb74d'
-            },
-            emphasis: {
-              label: {
-                show: false
-              },
+      try {
+        // 先加载省级地图数据
+        UIController.showLoading('初始化地图', '正在加载中国省级地图...');
+
+        let chinaGeoJson;
+        if (!geoDataCache['china']) {
+          const response = await fetch('/api/geo/china');
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          chinaGeoJson = await response.json();
+          geoDataCache['china'] = chinaGeoJson;
+          console.log('✅ 初始化：省级地图数据加载完成');
+        } else {
+          chinaGeoJson = geoDataCache['china'];
+          console.log('✅ 初始化：使用缓存的省级地图数据');
+        }
+
+        // 注册中国地图
+        echarts.registerMap('china', chinaGeoJson);
+        CHINA_BOUNDING_COORDS = computeBoundingCoords(chinaGeoJson);
+
+        const option = {
+          backgroundColor: 'transparent',
+          geo: [
+            {
+              // base geo（省级）
+              map: 'china',
+              roam: true,
+              selectedMode: false,
+              boundingCoords: CHINA_BOUNDING_COORDS || undefined,
+              center: INITIAL_VIEW.center,
+              zoom: INITIAL_VIEW.zoom,
+              regions: [],
+              label: { show: false },
               itemStyle: {
-                color: '#ffd700'
+                areaColor: '#323c48',
+                borderColor: '#516b7d',
+                borderWidth: 1.6
+              },
+              emphasis: {
+                label: {
+                  show: true,
+                  color: '#667eea',
+                  fontSize: 14
+                },
+                itemStyle: {
+                  areaColor: 'rgba(102, 126, 234, 0.1)',
+                  borderColor: '#667eea',
+                  borderWidth: 2
+                }
+              },
+              // 避免“点击选中变黄”的默认 select 样式
+              select: {
+                label: { show: false },
+                itemStyle: {
+                  areaColor: '#323c48',
+                  borderColor: '#516b7d',
+                  borderWidth: 1.6
+                }
               }
-            }
-          },
-          {
-            name: '新增点亮',
-            type: 'effectScatter',
-            coordinateSystem: 'geo',
-            data: [],
-            symbolSize: 16,
-            showEffectOn: 'render',
-            rippleEffect: {
-              brushType: 'stroke',
-              scale: 1.7,
-              period: 3
             },
-            hoverAnimation: true,
-            label: {
-              formatter: '{b}',
-              position: 'right',
+            {
+              // cities overlay geo
               show: false,
-              color: '#fff'
+              map: 'china',
+              roam: false,
+              silent: false,
+              boundingCoords: CHINA_BOUNDING_COORDS || undefined,
+              label: { show: false },
+              itemStyle: {
+                areaColor: 'transparent',
+                borderColor: 'rgba(102, 126, 234, 0.75)',
+                borderWidth: 0.9
+              },
+              emphasis: {
+                label: { show: true, color: '#b6c2ff', fontSize: 12 },
+                itemStyle: {
+                  areaColor: 'transparent',
+                  borderColor: 'rgba(102, 126, 234, 0.95)',
+                  borderWidth: 1.4
+                }
+              },
+              z: 5
             },
-            itemStyle: {
-              color: '#ff6b6b',
-              shadowBlur: 15,
-              shadowColor: '#ff6b6b'
-            },
-            zlevel: 1
-          }
-        ]
-      };
+            {
+              // districts overlay geo
+              show: false,
+              map: 'china',
+              roam: false,
+              silent: false,
+              boundingCoords: CHINA_BOUNDING_COORDS || undefined,
+              label: { show: false },
+              itemStyle: {
+                areaColor: 'transparent',
+                borderColor: 'rgba(255, 183, 77, 0.55)',
+                borderWidth: 0.6
+              },
+              emphasis: {
+                label: { show: true, color: '#ffb74d', fontSize: 11 },
+                itemStyle: {
+                  areaColor: 'transparent',
+                  borderColor: 'rgba(255, 183, 77, 0.85)',
+                  borderWidth: 1.0
+                }
+              },
+              z: 6
+            }
+          ],
+          series: []
+        };
 
-      chart.setOption(option);
-      window.addEventListener('resize', () => {
-        chart && chart.resize();
-      });
+        chart.setOption(option);
+        chartReady = true;
+
+        // 省级特征名映射（用于按 adcode 精确着色）
+        provinceFeatureNameById = buildFeatureNameById(chinaGeoJson);
+
+        // 刷新/初次进入：无论 WS 状态先到还是后到，这里都补一次上色
+        updateMap();
+
+        // 若图表就绪前已收到点亮请求，这里开始按队列执行
+        processAutoFocusQueue();
+
+        // 初始化层级指示器
+        UIController.updateLevelIndicator('layered', '省级地图（点击省→市→区县）');
+
+        // 点击钻取（不再使用“缩放自动全国细分”，避免卡顿）
+        chart.getZr().on('click', handleMapClick);
+
+        // 拖动/缩放时，让叠加层跟随 base geo
+        chart.on('georoam', () => {
+          syncOverlayGeoView();
+          cancelAutoReturnByUser();
+        });
+
+        window.addEventListener('resize', () => {
+          chart && chart.resize();
+        });
+
+        console.log('🎉 地图初始化完成，支持层级叠加显示');
+
+      } catch (error) {
+        console.error('❌ 地图初始化失败:', error);
+        UIController.showError('初始化失败', `地图初始化失败: ${error.message}`);
+      } finally {
+        UIController.hideLoading();
+      }
     }
 
-    // 更新地图
-    function updateMap(highlightProvinceId = null) {
+    async function ensureProvinceHitGeoLoaded() {
+      if (geoDataCache['china_province_hit']) return;
+      const response = await fetch('/vendor/echarts/map/json/china.json', { cache: 'force-cache' });
+      if (response.ok) {
+        const gj = await response.json();
+        geoDataCache['china_province_hit'] = gj;
+        provinceFeatureById = new Map();
+        for (const f of (Array.isArray(gj?.features) ? gj.features : [])) {
+          const props = f?.properties || {};
+          const id = pickAdcode(props);
+          if (!id) continue;
+          if (!provinceFeatureById.has(String(id))) provinceFeatureById.set(String(id), f);
+        }
+      }
+    }
+
+    function setCityBordersMap(provinceCode, geojson) {
+      const mapName = `cities_${provinceCode}`;
+      echarts.registerMap(mapName, geojson);
+      cityFeatureNameById = buildFeatureNameById(geojson);
+      cityFeatureById = new Map();
+      for (const f of (Array.isArray(geojson?.features) ? geojson.features : [])) {
+        const props = f?.properties || {};
+        const id = pickAdcode(props);
+        if (!id) continue;
+        if (!cityFeatureById.has(String(id))) cityFeatureById.set(String(id), f);
+      }
+      districtFeatureNameById = new Map();
+      districtFeatureById = new Map();
+      const { center, zoom } = getBaseGeoView();
+      chart.setOption(
+        {
+          geo: [
+            // base geo：允许 hover 省名（用于在市级边界显示时，仍能悬浮其他省看到名字）
+            { silent: false, emphasis: { label: { show: true } } },
+            {
+              show: true,
+              map: mapName,
+              silent: false,
+              center,
+              zoom,
+              boundingCoords: CHINA_BOUNDING_COORDS || undefined
+            },
+            {
+              show: false,
+              map: 'china',
+              silent: false,
+              center,
+              zoom,
+              boundingCoords: CHINA_BOUNDING_COORDS || undefined
+            }
+          ]
+        },
+        { notMerge: false }
+      );
+    }
+
+    function setDistrictBordersMap(cityCode, geojson) {
+      const mapName = `districts_${cityCode}`;
+      echarts.registerMap(mapName, geojson);
+      districtFeatureNameById = buildFeatureNameById(geojson);
+      districtFeatureById = new Map();
+      for (const f of (Array.isArray(geojson?.features) ? geojson.features : [])) {
+        const props = f?.properties || {};
+        const id = pickAdcode(props);
+        if (!id) continue;
+        if (!districtFeatureById.has(String(id))) districtFeatureById.set(String(id), f);
+      }
+      const { center, zoom } = getBaseGeoView();
+      chart.setOption(
+        {
+          geo: [
+            // base geo：允许 hover 省名（用于区县边界显示时，仍能悬浮其他省看到名字）
+            { silent: false, emphasis: { label: { show: true } } },
+            // 市级 overlay：需要能 hover 其它市（否则会出现“省级高亮错层”的怪异效果）
+            { silent: false },
+            {
+              show: true,
+              map: mapName,
+              silent: false,
+              center,
+              zoom,
+              boundingCoords: CHINA_BOUNDING_COORDS || undefined
+            }
+          ]
+        },
+        { notMerge: false }
+      );
+    }
+
+    function clearDrilldown() {
+      // 取消任何未完成的异步钻取流程
+      drillSeq++;
+      selectedProvince = null;
+      selectedCity = null;
+      selectedCitiesGeoJson = null;
+      currentMapLevel = 'province';
+      currentViewRegion = null;
+      cityFeatureNameById = new Map();
+      cityFeatureById = new Map();
+      districtFeatureNameById = new Map();
+      districtFeatureById = new Map();
+      chart.setOption(
+        {
+          geo: [
+            { silent: false, emphasis: { label: { show: true } } },
+            { show: false, map: 'china', silent: false },
+            { show: false, map: 'china', silent: false }
+          ]
+        },
+        { notMerge: false }
+      );
+      UIController.updateLevelIndicator('layered', '省级地图（点击省→市→区县）');
+      updateMap();
+    }
+
+    function applyLayerColors() {
       if (!chart) return;
 
-      // 省份面高亮（不是只打点）
-      const litProvinceItems = (provinces || []).filter(p => provinceLitState?.[p.id]?.isLit);
-      const maxCount = Math.max(1, ...litProvinceItems.map(p => Number(p.submissionCount || 0)));
-      const litRegions = litProvinceItems.map(p => {
-        const isHighlight = highlightProvinceId && p.id === highlightProvinceId;
-        const count = Number(p.submissionCount || 0);
-        const t = maxCount <= 1 ? 0 : clamp01((count - 1) / (maxCount - 1));
+      const provinceExclude = (currentMapLevel === 'province' || !selectedProvince) ? null : String(selectedProvince.code);
+      const cityExclude = (currentMapLevel === 'district' && selectedCity) ? String(selectedCity.code) : null;
 
-        // 次数越多越亮：从基础紫蓝 (#667eea) 渐变到暖色高亮 (#ffb74d)
-        const baseArea = blendHex('#667eea', '#ffb74d', t);
-        const baseBorder = blendHex('#b6c2ff', '#ffd700', t);
-
-        return {
-          name: p.name,
-          itemStyle: {
-            areaColor: isHighlight ? '#ff6b6b' : baseArea,
-            borderColor: isHighlight ? '#ffd700' : baseBorder,
-            borderWidth: isHighlight ? 2.5 : 1.8
-          },
-          emphasis: {
-            itemStyle: {
-              areaColor: '#ff6b6b'
-            }
-          }
-        };
-      });
-
-      const litProvinces = Object.entries(provinceLitState)
-        .filter(([_, state]) => state.isLit)
-        .map(([id, state]) => ({
-          name: state.firstNickname || '已点亮',
-          value: [...(geoCoords[id] || [0, 0]), id]
-        }));
-
-      const option = chart.getOption();
-      if (option.geo && option.geo.length > 0) {
-        option.geo[0].regions = litRegions;
+      const provinceRegions = [];
+      for (const [id, st] of Object.entries(litRegionState || {})) {
+        if (!isProvinceAdcode(id)) continue;
+        const cnt = Number(st?.count || 0);
+        if (!(cnt > 0)) continue;
+        if (provinceExclude && String(id) === provinceExclude) continue;
+        const name = provinceFeatureNameById.get(String(id)) || litRegionsMetaById[String(id)]?.name || st?.matchedName || String(id);
+        provinceRegions.push({
+          name,
+          itemStyle: { areaColor: colorForCount(cnt) },
+          emphasis: { itemStyle: { areaColor: colorForCount(cnt) } }
+        });
       }
-      option.series[0].data = litProvinces;
-      
-      // 仅在最新点亮的省份显示涟漪动画
-      if (highlightProvinceId && geoCoords[highlightProvinceId]) {
-        option.series[1].data = [{
-          name: provinceLitState[highlightProvinceId].firstNickname || '新增',
-          value: [...geoCoords[highlightProvinceId], highlightProvinceId]
-        }];
-      } else if (litProvinces.length > 0) {
-        option.series[1].data = [litProvinces[litProvinces.length - 1]];
-      }
-      
-      chart.setOption(option);
 
-      // 更新已点亮列表
-      updateLitList();
+      const cityRegions = [];
+      if (selectedProvince && currentMapLevel !== 'province') {
+        const p2 = String(selectedProvince.code).slice(0, 2);
+        for (const [id, st] of Object.entries(litRegionState || {})) {
+          if (!isCityAdcode(id)) continue;
+          if (!String(id).startsWith(p2)) continue;
+          const cnt = Number(st?.count || 0);
+          if (!(cnt > 0)) continue;
+          if (cityExclude && String(id) === cityExclude) continue;
+          const name = cityFeatureNameById.get(String(id)) || litRegionsMetaById[String(id)]?.name || st?.matchedName || String(id);
+          cityRegions.push({
+            name,
+            itemStyle: { areaColor: colorForCount(cnt) },
+            emphasis: { itemStyle: { areaColor: colorForCount(cnt) } }
+          });
+        }
+      }
+
+      const districtRegions = [];
+      if (selectedCity && currentMapLevel === 'district') {
+        const c4 = String(selectedCity.code).slice(0, 4);
+        for (const [id, st] of Object.entries(litRegionState || {})) {
+          if (!isDistrictAdcode(id)) continue;
+          if (!String(id).startsWith(c4)) continue;
+          const cnt = Number(st?.count || 0);
+          if (!(cnt > 0)) continue;
+          const name = districtFeatureNameById.get(String(id)) || litRegionsMetaById[String(id)]?.name || st?.matchedName || String(id);
+          districtRegions.push({
+            name,
+            itemStyle: { areaColor: colorForCount(cnt) },
+            emphasis: { itemStyle: { areaColor: colorForCount(cnt) } }
+          });
+        }
+      }
+
+      chart.setOption(
+        {
+          geo: [
+            { regions: provinceRegions },
+            { regions: cityRegions },
+            { regions: districtRegions }
+          ]
+        },
+        { notMerge: false, lazyUpdate: true, silent: true }
+      );
     }
 
-    // 更新已点亮省份列表
-    function updateLitList() {
-      const litProvinces = provinces.filter(p => provinceLitState[p.id]?.isLit);
-      const container = document.getElementById('litProvinces');
-      container.innerHTML = litProvinces
-        .map(p => `<div class="province-tag">${p.name}</div>`)
+    async function goToInitialView({ showToast: shouldToast } = { showToast: true }) {
+      if (!chart || !chartReady) return;
+      cancelAutoReturn();
+
+      // 不重建图表：先收起边界，再动画回全国
+      drillSeq++;
+      selectedProvince = null;
+      selectedCity = null;
+      selectedCitiesGeoJson = null;
+      currentMapLevel = 'province';
+      currentViewRegion = null;
+      cityFeatureNameById = new Map();
+      cityFeatureById = new Map();
+      districtFeatureNameById = new Map();
+      districtFeatureById = new Map();
+
+      // 先启动动画（更短），让响应更快
+      const anim = animateGeoViewTo(INITIAL_VIEW.center, INITIAL_VIEW.zoom, 420);
+
+      // 避免同步 setOption 阻塞点击后的第一帧：下一 tick 再收起边界/补上色
+      setTimeout(() => {
+        chart.setOption(
+          {
+            geo: [
+              { silent: false, emphasis: { label: { show: true } } },
+              { show: false, map: 'china', silent: false },
+              { show: false, map: 'china', silent: false }
+            ]
+          },
+          { notMerge: false, lazyUpdate: true, silent: true }
+        );
+        updateMap();
+        UIController.updateLevelIndicator('layered', '省级地图（点击省→市→区县）');
+      }, 0);
+      await anim;
+      updateMap();
+      UIController.updateLevelIndicator('layered', '省级地图（点击省→市→区县）');
+      if (shouldToast) showToast('🧭 已恢复初始视图');
+    }
+
+    // 初始化视图（按钮入口）
+    async function initializeMapView() {
+      try {
+        await goToInitialView({ showToast: true });
+      } catch (e) {
+        console.error('初始化视图失败:', e);
+        showToast('❌ 初始化视图失败: ' + (e?.message || e));
+      }
+    }
+
+    async function drillToProvinceByCode(provinceCode, { animate = true } = {}) {
+      const mySeq = ++drillSeq;
+      await ensureProvinceHitGeoLoaded();
+
+      const id = String(provinceCode || '').trim();
+      if (!isAdcode6(id)) return;
+
+      const name = provinceFeatureNameById.get(id) || litRegionsMetaById[id]?.name || id;
+      selectedProvince = { code: id, name };
+      selectedCity = null;
+      selectedCitiesGeoJson = null;
+      currentMapLevel = 'city';
+      currentViewRegion = id;
+      UIController.updateLevelIndicator('layered', `${name} - 市级边界`);
+
+      await new Promise(requestAnimationFrame);
+
+      const cacheKey = `province:${id}:citiesGeo`;
+      const fetchPromise = (async () => {
+        if (geoDataCache[cacheKey]) return geoDataCache[cacheKey];
+        const response = await fetch(`/api/geo/province/${id}`);
+        if (!response.ok) throw new Error(`市级边界接口返回 HTTP ${response.status}`);
+        const geojson = await response.json();
+        geoDataCache[cacheKey] = geojson;
+        return geojson;
+      })();
+
+      const pFeature = provinceFeatureById.get(id) || null;
+      const pProps = pFeature?.properties || {};
+      const pc = pProps?.centroid || pProps?.center || pProps?.cp;
+      const pCenter = (Array.isArray(pc) && pc.length === 2 && Number.isFinite(Number(pc[0])) && Number.isFinite(Number(pc[1])))
+        ? [Number(pc[0]), Number(pc[1])]
+        : null;
+      const pZoom = computeProvinceTargetZoom(pFeature);
+      const animPromise = (animate && pCenter && Number.isFinite(pZoom)) ? animateGeoViewTo(pCenter, pZoom, 680) : Promise.resolve();
+
+      const [geojson] = await Promise.all([fetchPromise, animPromise]);
+      if (mySeq !== drillSeq) return;
+
+      selectedCitiesGeoJson = geojson;
+      const cnt = Array.isArray(geojson?.features) ? geojson.features.length : 0;
+      if (!cnt) return;
+      setCityBordersMap(id, geojson);
+      updateMap();
+    }
+
+    async function focusCityByCode(cityCode, { animate = true } = {}) {
+      const id = String(cityCode || '').trim();
+      const cFeature = cityFeatureById.get(id) || null;
+      const cProps = cFeature?.properties || {};
+      const cc = cProps?.centroid || cProps?.center || cProps?.cp;
+      const cCenter = (Array.isArray(cc) && cc.length === 2 && Number.isFinite(Number(cc[0])) && Number.isFinite(Number(cc[1])))
+        ? [Number(cc[0]), Number(cc[1])]
+        : null;
+      const cZoom = computeCityTargetZoom(cFeature);
+      if (animate && cCenter && Number.isFinite(cZoom)) {
+        await animateGeoViewTo(cCenter, cZoom, 640);
+      }
+      updateMap();
+    }
+
+    async function drillToCityByCode(cityCode, { animate = true } = {}) {
+      const mySeq = ++drillSeq;
+      const id = String(cityCode || '').trim();
+      if (!isAdcode6(id)) return;
+
+      const name = cityFeatureNameById.get(id) || litRegionsMetaById[id]?.name || id;
+      selectedCity = { code: id, name };
+      currentMapLevel = 'district';
+      currentViewRegion = id;
+      UIController.updateLevelIndicator('layered', `${selectedProvince?.name || ''} / ${name} - 区县边界`);
+
+      await new Promise(requestAnimationFrame);
+
+      const cacheKey = `city:${id}:districtsGeo`;
+      const fetchPromise = (async () => {
+        if (geoDataCache[cacheKey]) return geoDataCache[cacheKey];
+        const response = await fetch(`/api/geo/city/${id}`);
+        const geojson = response.ok ? await response.json() : { type: 'FeatureCollection', features: [] };
+        geoDataCache[cacheKey] = geojson;
+        return geojson;
+      })();
+
+      const cFeature = cityFeatureById.get(id) || null;
+      const cProps = cFeature?.properties || {};
+      const cc = cProps?.centroid || cProps?.center || cProps?.cp;
+      const cCenter = (Array.isArray(cc) && cc.length === 2 && Number.isFinite(Number(cc[0])) && Number.isFinite(Number(cc[1])))
+        ? [Number(cc[0]), Number(cc[1])]
+        : null;
+      const cZoom = computeCityTargetZoom(cFeature);
+      const animPromise = (animate && cCenter && Number.isFinite(cZoom)) ? animateGeoViewTo(cCenter, cZoom, 640) : Promise.resolve();
+
+      const [geojson] = await Promise.all([fetchPromise, animPromise]);
+      if (mySeq !== drillSeq) return;
+
+      setDistrictBordersMap(id, geojson);
+      updateMap();
+    }
+
+    async function focusDistrictByCode(districtCode, { animate = true } = {}) {
+      const id = String(districtCode || '').trim();
+      const dFeature = districtFeatureById.get(id) || null;
+      const dProps = dFeature?.properties || {};
+      const dc = dProps?.centroid || dProps?.center || dProps?.cp;
+      const dCenter = (Array.isArray(dc) && dc.length === 2 && Number.isFinite(Number(dc[0])) && Number.isFinite(Number(dc[1])))
+        ? [Number(dc[0]), Number(dc[1])]
+        : null;
+      const dZoom = computeDistrictTargetZoom(dFeature);
+      if (animate && dCenter && Number.isFinite(dZoom)) {
+        await animateGeoViewTo(dCenter, dZoom, 520);
+      }
+      updateMap();
+    }
+
+    async function autoFocusToMatched(matched, cascadeIds) {
+      if (!matched) return;
+      if (!chart || !chartReady) return;
+
+      cancelAutoReturn();
+      clearFocusLabel();
+      const id = String(matched.id || '');
+      const lvl = matched.level || inferLevelFromAdcode(id);
+      if (!id || !lvl) return;
+
+      // 自动聚焦开始：不希望之后的旧异步流程覆盖当前视图
+      drillSeq++;
+
+      if (lvl === 'province') {
+        // 省：只聚焦省，不显示市级边界
+        selectedProvince = null;
+        selectedCity = null;
+        selectedCitiesGeoJson = null;
+        currentMapLevel = 'province';
+        currentViewRegion = null;
+        cityFeatureNameById = new Map();
+        cityFeatureById = new Map();
+        districtFeatureNameById = new Map();
+        districtFeatureById = new Map();
+
+        chart.setOption(
+          {
+            geo: [
+              { silent: false, emphasis: { label: { show: true } } },
+              { show: false, map: 'china', silent: false },
+              { show: false, map: 'china', silent: false }
+            ]
+          },
+          { notMerge: false }
+        );
+        updateMap();
+
+        await ensureProvinceHitGeoLoaded();
+        const pFeature = provinceFeatureById.get(id) || null;
+        const pCenter = pickFeatureCoord(pFeature);
+        const pZoom = computeProvinceTargetZoom(pFeature);
+        if (pCenter && Number.isFinite(pZoom)) {
+          await animateGeoViewTo(pCenter, pZoom, 680);
+        }
+        updateMap();
+        if (pCenter) showFocusLabel(String(matched.name || ''), pCenter, 1000);
+        scheduleAutoReturnToNational();
+        return;
+      }
+
+      const pId = provinceIdFromAny(id);
+      if (!pId) return;
+      await drillToProvinceByCode(pId, { animate: true });
+
+      // 第一步：省级提示 + 等待（让两段动画间隔拉长）
+      const pName = provinceFeatureNameById.get(pId) || litRegionsMetaById[pId]?.name || '';
+      const pFeature = provinceFeatureById.get(pId) || null;
+      const pCoord = pickFeatureCoord(pFeature);
+      if (pCoord && pName) {
+        showFocusLabel(pName, pCoord, 1000);
+        await delay(1000);
+      } else {
+        await delay(1000);
+      }
+
+      if (lvl === 'city') {
+        currentMapLevel = 'city';
+        selectedCity = null;
+        await focusCityByCode(id, { animate: true });
+
+        // 第二步：市级提示 + 等待
+        const cFeature = cityFeatureById.get(id) || null;
+        const cCoord = pickFeatureCoord(cFeature);
+        const cName = cityFeatureNameById.get(id) || litRegionsMetaById[id]?.name || matched.name || '';
+        if (cCoord && cName) showFocusLabel(cName, cCoord, 1000);
+        scheduleAutoReturnToNational();
+        return;
+      }
+
+      const cId = cityIdFromAny(id);
+      if (!cId) return;
+      await drillToCityByCode(cId, { animate: true });
+
+      // 第二步：市级提示 + 等待
+      const cFeature = cityFeatureById.get(cId) || null;
+      const cCoord = pickFeatureCoord(cFeature);
+      const cName = cityFeatureNameById.get(cId) || litRegionsMetaById[cId]?.name || '';
+      if (cCoord && cName) {
+        showFocusLabel(cName, cCoord, 1000);
+        await delay(1000);
+      } else {
+        await delay(1000);
+      }
+
+      await focusDistrictByCode(id, { animate: true });
+
+      // 第三步：区县提示
+      const dFeature = districtFeatureById.get(id) || null;
+      const dCoord = pickFeatureCoord(dFeature);
+      const dName = districtFeatureNameById.get(id) || litRegionsMetaById[id]?.name || matched.name || '';
+      if (dCoord && dName) {
+        showFocusLabel(dName, dCoord, 1000);
+      }
+      scheduleAutoReturnToNational();
+    }
+
+    async function selectProvinceByCoord(coord) {
+      const mySeq = ++drillSeq;
+      await ensureProvinceHitGeoLoaded();
+      const hit = geoDataCache['china_province_hit'];
+      const p = findProvinceByPoint(coord, hit);
+      if (!p?.code) return false;
+
+      // 再点一次同一省：收起回省级
+      if (selectedProvince && String(selectedProvince.code) === String(p.code) && !selectedCity) {
+        clearDrilldown();
+        return true;
+      }
+
+      // 切换省份：清空市/区县
+      const changed = !selectedProvince || String(selectedProvince.code) !== String(p.code);
+      selectedProvince = { code: String(p.code), name: p.name };
+      selectedCity = null;
+      selectedCitiesGeoJson = null;
+      // geo overlay 模式下，不再需要清理 series
+
+      currentMapLevel = 'city';
+      currentViewRegion = String(selectedProvince.code);
+      UIController.updateLevelIndicator('layered', `${selectedProvince.name} - 市级边界`);
+
+      // 让浏览器先渲染一帧（减少“点击后空档期”的卡顿感）
+      await new Promise(requestAnimationFrame);
+
+      const cacheKey = `province:${selectedProvince.code}:citiesGeo`;
+      const needFetch = !geoDataCache[cacheKey] || changed;
+
+      let loadingTimer = null;
+      let loadingShown = false;
+      const showLoadingIfSlow = () => {
+        loadingShown = true;
+        UIController.showLoading('加载地图数据', `正在加载${selectedProvince.name}市级边界...`);
+      };
+
+      const fetchPromise = (async () => {
+        if (!needFetch) return geoDataCache[cacheKey];
+        // 如果网络慢，延迟一点再显示 loading，避免“闪一下就没了”造成顿挫
+        loadingTimer = setTimeout(showLoadingIfSlow, 180);
+        const response = await fetch(`/api/geo/province/${selectedProvince.code}`);
+        if (!response.ok) {
+          throw new Error(`市级边界接口返回 HTTP ${response.status}`);
+        }
+        const geojson = await response.json();
+        geoDataCache[cacheKey] = geojson;
+        return geojson;
+      })();
+
+      // 根据省份大小一次性计算“合适 zoom”（可放大也可缩小）
+      const pFeature = provinceFeatureById.get(String(p.code)) || null;
+      const props = pFeature?.properties || {};
+      const c = props?.centroid || props?.center || props?.cp;
+      const pCenter = (Array.isArray(c) && c.length === 2 && Number.isFinite(Number(c[0])) && Number.isFinite(Number(c[1])))
+        ? [Number(c[0]), Number(c[1])]
+        : null;
+      const targetZoom = computeProvinceTargetZoom(pFeature);
+
+      const animPromise = (pCenter && Number.isFinite(targetZoom))
+        ? animateGeoViewTo(pCenter, targetZoom, 680)
+        : Promise.resolve();
+
+      // 动画与数据加载并行；但边界线要等动画结束后再显示
+      await animPromise;
+      const geojson = await fetchPromise;
+      if (loadingTimer) clearTimeout(loadingTimer);
+      if (loadingShown) UIController.hideLoading();
+
+      // 若用户已退回/切换（序列号变化），忽略过期结果
+      if (mySeq !== drillSeq) return true;
+
+      selectedCitiesGeoJson = geojson;
+      const cnt = Array.isArray(selectedCitiesGeoJson?.features) ? selectedCitiesGeoJson.features.length : 0;
+      console.log('🧭 省钻取:', selectedProvince, 'cities features=', cnt);
+      if (!cnt) {
+        UIController.showError('无市级边界数据', `${selectedProvince.name} 的市级边界数据为空（可能数据文件缺失/损坏）。`);
+        return;
+      }
+      setCityBordersMap(selectedProvince.code, selectedCitiesGeoJson);
+      updateMap();
+      return true;
+    }
+
+    function handleOutsideClickGoUp() {
+      if (!chart || !chartReady) return;
+      drillSeq++;
+
+      if (currentMapLevel === 'district') {
+        selectedCity = null;
+        currentMapLevel = 'city';
+        currentViewRegion = String(selectedProvince?.code || '');
+        chart.setOption(
+          {
+            geo: [
+              {},
+              { silent: false, show: true },
+              { show: false, map: 'china', silent: false }
+            ]
+          },
+          { notMerge: false }
+        );
+        UIController.updateLevelIndicator('layered', `${selectedProvince?.name || ''} - 市级边界`);
+        updateMap();
+        return;
+      }
+
+      if (currentMapLevel === 'city') {
+        clearDrilldown();
+      }
+    }
+
+    async function selectCityByCoord(coord) {
+      if (!selectedProvince?.code || !selectedCitiesGeoJson) return false;
+      const c = findCityByPoint(coord, selectedCitiesGeoJson);
+      if (!c?.code) return false;
+
+      const mySeq = ++drillSeq;
+
+      // 再点一次同一市：收起区县，回到市级
+      if (selectedCity && String(selectedCity.code) === String(c.code)) {
+        selectedCity = null;
+        currentMapLevel = 'city';
+        currentViewRegion = String(selectedProvince.code);
+        // 收起区县 overlay
+        chart.setOption(
+          {
+            geo: [
+              {},
+              { silent: false, show: true },
+              { show: false, map: 'china', silent: false }
+            ]
+          },
+          { notMerge: false }
+        );
+        UIController.updateLevelIndicator('layered', `${selectedProvince.name} - 市级边界`);
+        updateMap();
+        return true;
+      }
+
+      const changed = !selectedCity || String(selectedCity.code) !== String(c.code);
+      selectedCity = { code: String(c.code), name: c.name };
+      currentMapLevel = 'district';
+      currentViewRegion = String(selectedCity.code);
+      UIController.updateLevelIndicator('layered', `${selectedProvince.name} / ${selectedCity.name} - 区县边界`);
+
+      // 让浏览器先渲染一帧，减少点击后的“空档感”
+      await new Promise(requestAnimationFrame);
+
+      // 城市点击：动画聚焦（居中+一次性缩放），动画结束后再显示区县边界
+      const cFeature = cityFeatureById.get(String(selectedCity.code)) || null;
+      const cProps = cFeature?.properties || {};
+      const cc = cProps?.centroid || cProps?.center || cProps?.cp;
+      const cCenter = (Array.isArray(cc) && cc.length === 2 && Number.isFinite(Number(cc[0])) && Number.isFinite(Number(cc[1])))
+        ? [Number(cc[0]), Number(cc[1])]
+        : null;
+      const cityTargetZoom = computeCityTargetZoom(cFeature);
+
+      const cacheKey = `city:${selectedCity.code}:districtsGeo`;
+      const needFetch = !geoDataCache[cacheKey] || changed;
+
+      let loadingTimer = null;
+      let loadingShown = false;
+      const showLoadingIfSlow = () => {
+        loadingShown = true;
+        UIController.showLoading('加载地图数据', `正在加载${selectedCity.name}区县边界...`);
+      };
+
+      const fetchPromise = (async () => {
+        if (!needFetch) return geoDataCache[cacheKey];
+        loadingTimer = setTimeout(showLoadingIfSlow, 180);
+        const response = await fetch(`/api/geo/city/${selectedCity.code}`);
+        const geojson = response.ok ? await response.json() : { type: 'FeatureCollection', features: [] };
+        geoDataCache[cacheKey] = geojson;
+        return geojson;
+      })();
+
+      const animPromise = (cCenter && Number.isFinite(cityTargetZoom))
+        ? animateGeoViewTo(cCenter, cityTargetZoom, 640)
+        : Promise.resolve();
+
+      await animPromise;
+      const districtsGeo = await fetchPromise;
+      if (loadingTimer) clearTimeout(loadingTimer);
+      if (loadingShown) UIController.hideLoading();
+
+      if (mySeq !== drillSeq) return true;
+
+      setDistrictBordersMap(selectedCity.code, districtsGeo);
+      updateMap();
+      return true;
+    }
+
+    async function handleMapClick(evt) {
+      if (!chart) return;
+      cancelAutoReturnByUser();
+
+      // 尽量阻止 ECharts 默认的“选择高亮”行为
+      try {
+        evt?.event?.preventDefault?.();
+        evt?.event?.stopPropagation?.();
+      } catch (_) {
+        // ignore
+      }
+
+      const pixel = [evt.offsetX, evt.offsetY];
+      const coord = chart.convertFromPixel({ geoIndex: 0 }, pixel);
+      const coordOk = Array.isArray(coord) && coord.length === 2 && Number.isFinite(coord[0]) && Number.isFinite(coord[1]);
+
+      // 点击地图外（不在中国地图可投影区域）：默认提升一级
+      if (!coordOk) {
+        handleOutsideClickGoUp();
+        return;
+      }
+
+      try {
+        // 已选省：优先尝试选市（点在市级多边形内）
+        if (selectedProvince?.code && selectedCitiesGeoJson) {
+          const pickedCity = await selectCityByCoord(coord);
+          if (pickedCity) {
+            UIController.hideLoading();
+            return;
+          }
+        }
+
+        // 否则（或没命中市）：按点所在省切换
+        const pickedProvince = await selectProvinceByCoord(coord);
+        if (!pickedProvince) {
+          // 点击在中国轮廓外/空白处：提升一级
+          handleOutsideClickGoUp();
+        }
+      } catch (e) {
+        console.error('点击钻取失败:', e);
+        UIController.showError('钻取失败', e.message || '点击钻取失败');
+      } finally {
+        UIController.hideLoading();
+      }
+    }
+
+    // 处理地图缩放和平移事件
+    function handleMapRoam(params) {
+      if (!chart) return;
+
+      // 清除之前的防抖定时器
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+
+      // 设置防抖定时器
+      debounceTimer = setTimeout(async () => {
+        const option = chart.getOption();
+        const geo = option.geo[0];
+        const currentZoom = geo.zoom || 1;
+        const currentCenter = geo.center || [116.97, 35.71];
+
+        console.log(`🔍 当前缩放级别: ${currentZoom.toFixed(2)}, 中心: [${currentCenter[0].toFixed(2)}, ${currentCenter[1].toFixed(2)}]`);
+
+        // 同步叠加层跟随主 geo 的 zoom/center
+        syncOverlayGeos(currentZoom, currentCenter);
+
+        // 根据缩放级别更新地图层级显示
+        await updateMapLayers(currentZoom, currentCenter);
+      }, DEBOUNCE_DELAY);
+    }
+
+    function syncOverlayGeos(zoom, center) {
+      if (!chart) return;
+      chart.setOption(
+        {
+          geo: [
+            {},
+            { zoom, center },
+            { zoom, center }
+          ]
+        },
+        { notMerge: false }
+      );
+    }
+
+    async function ensureAllCitiesRegistered() {
+      if (citiesAllRegistered) return;
+      UIController.showLoading('加载地图数据', '正在加载全国市级边界...');
+      const response = await fetch('/api/geo/cities/all');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const geojson = await response.json();
+      echarts.registerMap('cities_all', geojson);
+      geoDataCache['cities_all'] = geojson;
+      citiesAllRegistered = true;
+    }
+
+    async function ensureAllDistrictsRegistered() {
+      if (districtsAllRegistered) return;
+      UIController.showLoading('加载地图数据', '正在加载全国区县边界...');
+      const response = await fetch('/api/geo/districts/all');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const geojson = await response.json();
+      echarts.registerMap('districts_all', geojson);
+      geoDataCache['districts_all'] = geojson;
+      districtsAllRegistered = true;
+    }
+
+    // 更新地图层级显示（叠加显示而非替换）
+    async function updateMapLayers(zoomLevel, center) {
+      try {
+        const wantCities = zoomLevel >= ZOOM_THRESHOLD.PROVINCE_TO_CITY;
+        const wantDistricts = zoomLevel >= ZOOM_THRESHOLD.CITY_TO_DISTRICT;
+
+        currentMapLevel = wantDistricts ? 'district' : wantCities ? 'city' : 'province';
+        currentViewRegion = null;
+
+        if (wantCities) {
+          await ensureAllCitiesRegistered();
+        }
+        if (wantDistricts) {
+          await ensureAllDistrictsRegistered();
+        }
+
+        chart.setOption(
+          {
+            geo: [
+              {},
+              {
+                show: Boolean(wantCities),
+                map: wantCities ? 'cities_all' : 'china'
+              },
+              {
+                show: Boolean(wantDistricts),
+                map: wantDistricts ? 'districts_all' : 'china'
+              }
+            ]
+          },
+          { notMerge: false }
+        );
+
+        const levelText = wantDistricts ? '区县级细分（全国）' :
+                         wantCities ? '市级细分（全国）' : '省级地图';
+        UIController.updateLevelIndicator('layered', levelText);
+      } catch (error) {
+        console.error('❌ 分层地图加载失败:', error);
+        UIController.showError('分层加载失败', error.message);
+      } finally {
+        UIController.hideLoading();
+      }
+    }
+
+    // 加载所需的地理数据
+    async function loadRequiredGeoData(center, options) {
+      const data = {
+        provinces: null,
+        cities: null,
+        districts: null,
+        focus: {
+          province: null,
+          city: null
+        }
+      };
+
+      try {
+        // 始终加载省级地图（基础层）
+        if (!geoDataCache['china']) {
+          UIController.showLoading('加载地图数据', '正在获取省级地理数据...');
+          const response = await fetch('/api/geo/china');
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          data.provinces = await response.json();
+          geoDataCache['china'] = data.provinces;
+          console.log('✅ 省级地图数据加载完成');
+        } else {
+          data.provinces = geoDataCache['china'];
+          console.log('✅ 使用缓存的省级地图数据');
+        }
+
+        // 命中测试用的“省级轮廓”（避免 /api/geo/china 可能是县级超大数据导致遍历过慢）
+        if (!geoDataCache['china_province_hit']) {
+          try {
+            const response = await fetch('/vendor/echarts/map/json/china.json', { cache: 'force-cache' });
+            if (response.ok) {
+              geoDataCache['china_province_hit'] = await response.json();
+            }
+          } catch (_) {
+            // ignore
+          }
+        }
+
+        // 先确定当前省份（用于后续加载市/区县）
+        const hitChina = geoDataCache['china_province_hit'] || data.provinces;
+        data.focus.province = findProvinceByPoint(center, hitChina);
+
+        // 根据需要加载市级数据
+        if (options.showCities && data.focus.province) {
+          const mapKey = `${data.focus.province.code}_cities`;
+          if (!geoDataCache[mapKey]) {
+            UIController.showLoading('加载地图数据', `正在获取${data.focus.province.name}市级地理数据...`);
+            const response = await fetch(`/api/geo/province/${data.focus.province.code}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            data.cities = await response.json();
+            geoDataCache[mapKey] = data.cities;
+            console.log(`✅ ${data.focus.province.name}市级地图数据加载完成`);
+          } else {
+            data.cities = geoDataCache[mapKey];
+            console.log(`✅ 使用缓存的${data.focus.province.name}市级地图数据`);
+          }
+
+          // 有了市级边界后，再确定当前城市
+          data.focus.city = findCityByPoint(center, data.cities);
+        }
+
+        // 根据需要加载区县级数据
+        if (options.showDistricts && data.focus.city) {
+          const mapKey = `${data.focus.city.code}_districts`;
+          if (!geoDataCache[mapKey]) {
+            UIController.showLoading('加载地图数据', `正在获取${data.focus.city.name}区县级地理数据...`);
+            const response = await fetch(`/api/geo/city/${data.focus.city.code}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const geojson = await response.json();
+
+            // 检查数据有效性
+            if (!geojson.features || geojson.features.length === 0) {
+              console.warn(`⚠️ ${data.focus.city.name}暂无区县级地图数据`);
+              data.districts = null;
+            } else {
+              data.districts = geojson;
+              geoDataCache[mapKey] = data.districts;
+              console.log(`✅ ${data.focus.city.name}区县级地图数据加载完成`);
+            }
+          } else {
+            data.districts = geoDataCache[mapKey];
+            console.log(`✅ 使用缓存的${data.focus.city.name}区县级地图数据`);
+          }
+        }
+
+      } catch (error) {
+        console.error('❌ 加载地理数据失败:', error);
+        UIController.showError('数据加载失败', error.message);
+      } finally {
+        UIController.hideLoading();
+      }
+
+      return data;
+    }
+
+    // 使用多层级数据更新地图显示（叠加显示）
+    function updateMapWithLayers(geoData, displayOptions) {
+      if (!chart || !geoData.provinces) return;
+
+      // 合并所有需要显示的地理要素
+      let combinedFeatures = [];
+
+      // 始终添加省级边界（作为基础层）
+      if (displayOptions.showProvinces && geoData.provinces) {
+        // 省级边界使用较粗的线条和半透明填充
+        geoData.provinces.features.forEach(feature => {
+          combinedFeatures.push({
+            ...feature,
+            properties: {
+              ...feature.properties,
+              level: 'province',
+              name: feature.properties.name || feature.properties.adcode
+            }
+          });
+        });
+      }
+
+      // 叠加市级边界
+      if (displayOptions.showCities && geoData.cities) {
+        geoData.cities.features.forEach(feature => {
+          combinedFeatures.push({
+            ...feature,
+            properties: {
+              ...feature.properties,
+              level: 'city',
+              name: feature.properties.name || feature.properties.adcode
+            }
+          });
+        });
+      }
+
+      // 叠加区县级边界
+      if (displayOptions.showDistricts && geoData.districts) {
+        geoData.districts.features.forEach(feature => {
+          combinedFeatures.push({
+            ...feature,
+            properties: {
+              ...feature.properties,
+              level: 'district',
+              name: feature.properties.name || feature.properties.adcode
+            }
+          });
+        });
+      }
+
+      // 创建合并的GeoJSON
+      const combinedGeoJson = {
+        type: "FeatureCollection",
+        features: combinedFeatures
+      };
+
+      // 注册合并后的地图
+      echarts.registerMap('layered_map', combinedGeoJson);
+
+      // 更新地图配置
+      updateLayeredMapConfig(displayOptions);
+
+      // 更新当前层级状态
+      currentMapLevel = displayOptions.showDistricts ? 'district' :
+               displayOptions.showCities ? 'city' : 'province';
+    }
+
+    // 更新层级地图配置
+    function updateLayeredMapConfig(displayOptions) {
+      if (!chart) return;
+
+      // 注意：ECharts 5 的 getOption() 通常不会保留 normal/emphasis 的老结构
+      // 这里直接用 setOption 做增量更新，避免访问 undefined。
+      const geoUpdate = {
+        map: 'layered_map'
+      };
+
+      if (displayOptions.showProvinces) {
+        geoUpdate.itemStyle = {
+          areaColor: 'transparent',
+          borderColor: '#516b7d',
+          borderWidth: 1.5,
+          borderType: 'solid'
+        };
+        geoUpdate.label = { show: false };
+        geoUpdate.emphasis = {
+          label: {
+            show: true,
+            color: '#667eea',
+            fontSize: 14
+          },
+          itemStyle: {
+            areaColor: 'rgba(102, 126, 234, 0.1)',
+            borderColor: '#667eea',
+            borderWidth: 2
+          }
+        };
+      }
+
+      const series0Update = {
+        map: 'layered_map',
+        itemStyle: {
+          areaColor: 'transparent',
+          borderColor: 'transparent',
+          borderWidth: 0
+        },
+        emphasis: {
+          itemStyle: {
+            areaColor: 'rgba(102, 126, 234, 0.15)',
+            borderColor: '#667eea',
+            borderWidth: 1
+          }
+        }
+      };
+
+      chart.setOption(
+        {
+          geo: [geoUpdate],
+          series: [series0Update]
+        },
+        { notMerge: false }
+      );
+
+      // 重新应用点亮状态
+      updateMap();
+    }
+
+
+    function pickAdcode(props) {
+      const v = props?.adcode ?? props?.ad_code ?? props?.adCode ?? props?.id ?? props?.code;
+      if (v === null || v === undefined) return null;
+      const s = String(v).trim();
+      return s ? s : null;
+    }
+
+    function pointInRing(point, ring) {
+      const x = point[0];
+      const y = point[1];
+      let inside = false;
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const xi = ring[i][0];
+        const yi = ring[i][1];
+        const xj = ring[j][0];
+        const yj = ring[j][1];
+        const intersect = ((yi > y) !== (yj > y)) && (x < ((xj - xi) * (y - yi)) / (yj - yi + 0.0) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+
+    function pointInPolygon(point, rings) {
+      if (!Array.isArray(rings) || rings.length === 0) return false;
+      const outer = rings[0];
+      if (!pointInRing(point, outer)) return false;
+      // holes
+      for (let i = 1; i < rings.length; i++) {
+        if (pointInRing(point, rings[i])) return false;
+      }
+      return true;
+    }
+
+    function pointInGeometry(point, geometry) {
+      const type = geometry?.type;
+      const coords = geometry?.coordinates;
+      if (!type || !coords) return false;
+      if (type === 'Polygon') {
+        return pointInPolygon(point, coords);
+      }
+      if (type === 'MultiPolygon') {
+        for (const poly of coords) {
+          if (pointInPolygon(point, poly)) return true;
+        }
+      }
+      return false;
+    }
+
+    function findFeatureByPoint(point, geojson) {
+      const features = Array.isArray(geojson?.features) ? geojson.features : [];
+      for (const f of features) {
+        if (pointInGeometry(point, f?.geometry)) return f;
+      }
+      return null;
+    }
+
+    // 根据经纬度点找到省份（用省级轮廓 GeoJSON 命中）
+    function findProvinceByPoint(point, provincesGeoJson) {
+      const f = findFeatureByPoint(point, provincesGeoJson);
+      if (!f) return null;
+      const props = f.properties || {};
+      const code = pickAdcode(props);
+      const name = String(props.name || props.NAME || props.fullname || '').trim() || (code || '');
+      if (!code) return null;
+      return { code, name };
+    }
+
+    // 根据经纬度点找到城市（用“省内市级边界” GeoJSON 命中）
+    function findCityByPoint(point, citiesGeoJson) {
+      const f = findFeatureByPoint(point, citiesGeoJson);
+      if (!f) return null;
+      const props = f.properties || {};
+      const code = pickAdcode(props);
+      const name = String(props.name || props.NAME || props.fullname || '').trim() || (code || '');
+      if (!code) return null;
+      return { code, name };
+    }
+
+    // 更新地图（颜色填充 + 右侧列表）
+    function updateMap() {
+      if (!chart || !chartReady) {
+        pendingMapUpdate = true;
+        return;
+      }
+      pendingMapUpdate = false;
+      applyLayerColors();
+    }
+
+    function renderHistoryBox() {
+      const box = document.getElementById('historyBox');
+      const list = (historyItems || []).slice(-40).reverse();
+      box.innerHTML = list
+        .map(x => {
+          const nickname = String(x?.nickname || '匿名');
+          // 需求：滚动记录始终显示用户输入（即使系统只能匹配到更高层级）
+          const place = String(x?.inputPlaceName || x?.matched?.name || '');
+          return `<div class="history-item"><span class="name">${escapeHtml(nickname)}</span> 点亮 <span class="place">${escapeHtml(place)}</span></div>`;
+        })
         .join('');
+    }
+
+    function startHistoryScroll() {
+      stopHistoryScroll();
+      historyTimer = setInterval(() => {
+        const box = document.getElementById('historyBox');
+        if (!box || box.children.length <= 1) return;
+        const last = box.lastElementChild;
+        if (!last) return;
+        last.style.opacity = '0.2';
+        setTimeout(() => {
+          box.insertBefore(last, box.firstElementChild);
+          last.style.opacity = '1';
+        }, 250);
+      }, 2500);
+    }
+
+    function stopHistoryScroll() {
+      if (historyTimer) {
+        clearInterval(historyTimer);
+        historyTimer = null;
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
 
     // WebSocket 事件处理
@@ -642,35 +2494,90 @@
       console.log('📨 收到消息:', message);
 
       if (message.type === 'initial_state') {
-        // provinces 里包含 submissionCount（用于区域渐亮）
-        provinces = message.data.stats?.provinces || message.data.provinces;
-        provinceLitState = message.data.litState;
-        document.getElementById('litCount').textContent = message.data.stats.litCount;
-        document.getElementById('totalCount').textContent = message.data.stats.totalSubmissions;
-        document.getElementById('clientCount').textContent = message.data.stats.clientsConnected || 0;
-        updateMap();
-      } else if (message.type === 'province_lit') {
-        provinceLitState[message.data.provinceId].isLit = true;
-        provinceLitState[message.data.provinceId].litAt = message.data.timestamp;
-        provinceLitState[message.data.provinceId].firstNickname = message.data.nickname;
+        const stats = message.data?.stats || {};
+        document.getElementById('litCount').textContent = stats.litCount || 0;
+        document.getElementById('totalCount').textContent = stats.totalSubmissions || 0;
+        document.getElementById('clientCount').textContent = stats.clientsConnected || 0;
 
-        document.getElementById('litCount').textContent = message.data.stats.litCount;
-        document.getElementById('totalCount').textContent = message.data.stats.totalSubmissions;
-        document.getElementById('clientCount').textContent = message.data.stats.clientsConnected || 0;
-        if (message.data.stats?.provinces) {
-          provinces = message.data.stats.provinces;
+        // 构建 meta 映射
+        litRegionsMetaById = {};
+        for (const r of (stats.litRegions || [])) {
+          litRegionsMetaById[String(r.id)] = { name: r.name, centroid: r.centroid, level: r.level, count: Number(r.count || 0) };
         }
-        updateMap(message.data.provinceId);
 
-        // 显示提示
-        showToast(`${message.data.nickname} 点亮了 ${message.data.provinceName} ✨`);
+        // 点亮状态：按次数
+        litRegionState = {};
+        for (const r of (stats.litRegions || [])) {
+          litRegionState[String(r.id)] = {
+            count: Number(r.count || 0),
+            firstNickname: r.firstNickname || null,
+            matchedName: r.name,
+            firstLitAt: r.firstLitAt || null,
+            lastLitAt: r.lastLitAt || null
+          };
+        }
+
+        historyItems = Array.isArray(message.data?.history) ? message.data.history : [];
+        renderHistoryBox();
+        startHistoryScroll();
+        updateMap();
+      } else if (message.type === 'region_lit') {
+        const d = message.data || {};
+        const stats = d.stats || {};
+        document.getElementById('litCount').textContent = stats.litCount || 0;
+        document.getElementById('totalCount').textContent = stats.totalSubmissions || 0;
+        document.getElementById('clientCount').textContent = stats.clientsConnected || 0;
+
+        // 直接用 stats.litRegions 重建，保证层级累计（省/市/区县）都能同步到前端
+        if (Array.isArray(stats.litRegions)) {
+          litRegionsMetaById = {};
+          litRegionState = {};
+          for (const r of stats.litRegions) {
+            litRegionsMetaById[String(r.id)] = { name: r.name, centroid: r.centroid, level: r.level, count: Number(r.count || 0) };
+            litRegionState[String(r.id)] = {
+              count: Number(r.count || 0),
+              firstNickname: r.firstNickname || null,
+              matchedName: r.name,
+              firstLitAt: r.firstLitAt || null,
+              lastLitAt: r.lastLitAt || null
+            };
+          }
+        }
+
+        const regionId = String(d.regionId);
+        const regionName = d?.matched?.name || d.regionName || regionId;
+        const displayPlace = String(d.inputPlaceName || d.placeName || regionName);
+
+        // push history：始终使用用户输入
+        historyItems.push({ nickname: d.nickname, inputPlaceName: displayPlace, matched: d.matched, createdAt: d.timestamp });
+        if (historyItems.length > 200) historyItems = historyItems.slice(-200);
+        renderHistoryBox();
+        updateMap();
+
+        // 手机端点亮后：入队自动聚焦（省/市/区县），3 秒无人操作回全国
+        enqueueAutoFocus(d.matched, d.cascadeIds);
+
+        showToast(`${d.nickname} 点亮了 ${displayPlace}`);
+      } else if (message.type === 'submission') {
+        // 未匹配到地名：只更新滚动记录，不改变地图
+        const d = message.data || {};
+        const stats = d.stats || {};
+        document.getElementById('litCount').textContent = stats.litCount || 0;
+        document.getElementById('totalCount').textContent = stats.totalSubmissions || 0;
+        document.getElementById('clientCount').textContent = stats.clientsConnected || 0;
+
+        const displayPlace = String(d.inputPlaceName || '');
+        historyItems.push({ nickname: d.nickname, inputPlaceName: displayPlace, matched: null, createdAt: d.createdAt || new Date().toISOString() });
+        if (historyItems.length > 200) historyItems = historyItems.slice(-200);
+        renderHistoryBox();
+        showToast(`${d.nickname} 提交了 ${displayPlace}（未匹配）`);
       } else if (message.type === 'reset') {
-        provinceLitState = {};
-        provinces.forEach(p => {
-          provinceLitState[p.id] = { isLit: false, litAt: null, firstNickname: null };
-        });
+        litRegionState = {};
+        litRegionsMetaById = {};
+        historyItems = [];
         document.getElementById('litCount').textContent = '0';
         document.getElementById('totalCount').textContent = '0';
+        renderHistoryBox();
         updateMap();
         showToast('🔄 地图已重置');
       }
@@ -725,7 +2632,7 @@
 
     // 导出数据
     function downloadStats() {
-      fetch('/api/submissions?limit=10000')
+      fetch('/api/history?limit=10000')
         .then(r => r.json())
         .then(data => {
           const jsonStr = JSON.stringify(data, null, 2);
@@ -774,25 +2681,39 @@
         .finally(() => {
           generateQRCode();
         });
-      
-      // 定期加载初始状态
-      fetch('/api/provinces/state')
-        .then(r => r.json())
-        .then(data => {
-          provinces = data.provinces;
-          const state = {};
-          data.provinces.forEach(p => {
-            state[p.id] = {
-              isLit: p.isLit,
-              litAt: p.litAt,
-              firstNickname: p.firstNickname
+
+      // 兜底：如果 WS 很慢/不可用，拉一次当前状态 + 历史
+      Promise.all([
+        fetch('/api/lit/state').then(r => r.json()).catch(() => null),
+        fetch('/api/history?limit=50').then(r => r.json()).catch(() => null)
+      ]).then(([stateRes, historyRes]) => {
+        if (stateRes && stateRes.ok) {
+          document.getElementById('litCount').textContent = stateRes.litCount || 0;
+          document.getElementById('totalCount').textContent = stateRes.totalSubmissions || 0;
+
+          litRegionsMetaById = {};
+          litRegionState = {};
+          for (const r of (stateRes.litRegions || [])) {
+            const id = String(r.id);
+            const cnt = Number(r.count ?? (r.isLit ? 1 : 0) ?? 0);
+            litRegionsMetaById[id] = { name: r.name, centroid: r.centroid, level: r.level, count: cnt };
+            litRegionState[id] = {
+              count: cnt,
+              firstNickname: r.firstNickname || null,
+              matchedName: r.name,
+              firstLitAt: r.firstLitAt || r.litAt || null,
+              lastLitAt: r.lastLitAt || r.litAt || null
             };
-          });
-          provinceLitState = state;
-          document.getElementById('litCount').textContent = data.totalLit;
-          document.getElementById('totalCount').textContent = data.totalSubmissions;
+          }
           updateMap();
-        });
+        }
+
+        if (historyRes && historyRes.ok) {
+          historyItems = Array.isArray(historyRes.data) ? historyRes.data : [];
+          renderHistoryBox();
+          startHistoryScroll();
+        }
+      });
     });
   </script>
 </body>

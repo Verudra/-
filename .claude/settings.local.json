@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(npm install:*)",
+      "Bash(npm start)",
+      "Bash(curl:*)",
+      "Bash(PORT=3001 node:*)",
+      "WebSearch",
+      "mcp__web-search-prime__webSearchPrime",
+      "mcp__web-reader__webReader"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

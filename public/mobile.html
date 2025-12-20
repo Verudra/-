@@ -70,8 +70,7 @@
       font-size: 0.95em;
     }
 
-    input,
-    select {
+    input {
       width: 100%;
       padding: 12px;
       border: 2px solid #e0e0e0;
@@ -81,8 +80,7 @@
       font-family: inherit;
     }
 
-    input:focus,
-    select:focus {
+    input:focus {
       outline: none;
       border-color: #667eea;
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -215,6 +213,23 @@
       color: #666;
     }
 
+    .match-detail {
+      margin-top: 10px;
+      font-size: 0.9em;
+      color: #666;
+      line-height: 1.5;
+      text-align: left;
+    }
+
+    .alt-list {
+      margin-top: 8px;
+      font-size: 0.85em;
+      color: #888;
+      line-height: 1.5;
+      text-align: left;
+      word-break: break-all;
+    }
+
     .character-count {
       font-size: 0.8em;
       color: #999;
@@ -258,11 +273,15 @@
       </div>
 
       <div class="form-group">
-        <label for="province">🗺️ 选择省份</label>
-        <select id="province" required>
-          <option value="">-- 请选择你所在的省份 --</option>
-        </select>
-        <div id="provinceError" class="error-text">请选择一个省份</div>
+        <label for="placeName">📍 地区全名</label>
+        <input
+          type="text"
+          id="placeName"
+          placeholder="如：广东省深圳市南山区 / 江苏省苏州市吴中区"
+          maxlength="60"
+          required
+        />
+        <div id="placeError" class="error-text">请输入地区全名</div>
       </div>
 
       <div class="button-group">
@@ -274,6 +293,8 @@
       <div class="checkmark">✨</div>
       <div class="success-text">提交成功！</div>
       <div class="province-name" id="successProvince"></div>
+      <div class="match-detail" id="matchDetail"></div>
+      <div class="alt-list" id="altList"></div>
     </div>
   </div>
 
@@ -281,34 +302,12 @@
     const form = document.getElementById('form');
     const messageEl = document.getElementById('message');
     const nicknameInput = document.getElementById('nickname');
-    const provinceSelect = document.getElementById('province');
+    const placeInput = document.getElementById('placeName');
     const submitBtn = document.getElementById('submitBtn');
     const successAnimation = document.getElementById('successAnimation');
     const charCountSpan = document.getElementById('charCount');
 
-    // 加载省份列表
-    async function loadProvinces() {
-      try {
-        const response = await fetch('/api/provinces');
-        if (!response.ok) {
-          throw new Error('加载失败');
-        }
-        const provinces = await response.json();
-
-        provinces.forEach(province => {
-          const option = document.createElement('option');
-          option.value = province.id;
-          option.textContent = province.name;
-          provinceSelect.appendChild(option);
-        });
-
-        form.style.display = 'block';
-        nicknameInput.focus();
-      } catch (error) {
-        showMessage('❌ 加载省份列表失败，请刷新重试', 'error');
-        console.error(error);
-      }
-    }
+    form.style.display = 'block';
 
     // 更新字符计数
     nicknameInput.addEventListener('input', () => {
@@ -339,7 +338,7 @@
       }
 
       const nickname = nicknameInput.value.trim();
-      const provinceId = provinceSelect.value;
+      const placeName = placeInput.value.trim();
 
       // 验证
       if (!nickname) {
@@ -348,9 +347,9 @@
         return;
       }
 
-      if (!provinceId) {
-        showMessage('❌ 请选择省份', 'error');
-        provinceSelect.focus();
+      if (!placeName) {
+        showMessage('❌ 请输入地区全名', 'error');
+        placeInput.focus();
         return;
       }
 
@@ -360,14 +359,14 @@
       submitBtn.innerHTML = '<span class="loading-spinner"></span>提交中...';
 
       try {
-        const response = await fetch('/api/submissions', {
+        const response = await fetch('/api/lights', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             nickname,
-            provinceId
+            placeName
           })
         });
 
@@ -381,12 +380,32 @@
           return;
         }
 
+        if (data.ok && data.lit === false) {
+          showMessage('⚠️ ' + (data.message || '未能匹配到地名，已记录输入'), 'info');
+          isSubmitting = false;
+          submitBtn.disabled = false;
+          submitBtn.textContent = '✨ 点亮我的家乡';
+          return;
+        }
+
         if (data.ok) {
           // 显示成功动画
           form.style.display = 'none';
           successAnimation.classList.add('show');
+          const matchedName = data?.matched?.name || '已点亮';
           document.getElementById('successProvince').innerHTML = 
-            `已点亮：<span style="color: #ffb74d; font-weight: bold;">${data.provinceName}</span>`;
+            `已点亮：<span style="color: #ffb74d; font-weight: bold;">${matchedName}</span>`;
+
+          const matchDetailEl = document.getElementById('matchDetail');
+          const altListEl = document.getElementById('altList');
+          matchDetailEl.textContent = `你输入：${placeName}；系统匹配：${matchedName}`;
+
+          const alts = Array.isArray(data.alternatives) ? data.alternatives : [];
+          if (alts.length > 0) {
+            altListEl.textContent = `备选：${alts.slice(0, 3).map(x => x.name).join(' / ')}`;
+          } else {
+            altListEl.textContent = '';
+          }
 
           // 3秒后重置表单
           setTimeout(() => {
@@ -420,7 +439,9 @@
     }
 
     // 页面加载
-    window.addEventListener('load', loadProvinces);
+    window.addEventListener('load', () => {
+      nicknameInput.focus();
+    });
   </script>
 </body>
 </html>

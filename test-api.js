@@ -6,7 +6,7 @@
  */
 
 const http = require('http');
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:3000';
 
 // 颜色输出
 const colors = {
@@ -26,6 +26,21 @@ function log(type, message) {
   }[type] || '';
   
   console.log(`${prefix} ${message}`);
+}
+
+function formatBodyForError(body) {
+  try {
+    if (typeof body === 'string') return body.slice(0, 300);
+    return JSON.stringify(body).slice(0, 300);
+  } catch {
+    return String(body);
+  }
+}
+
+function failWithResponse(label, res) {
+  const status = res?.status;
+  const body = formatBodyForError(res?.body);
+  return new Error(`${label} 失败: status=${status} body=${body}`);
 }
 
 // 发送 HTTP 请求
@@ -78,60 +93,49 @@ const tests = [
     }
   },
   {
-    name: '2. 获取省份列表',
+    name: '2. 获取点亮状态',
     fn: async () => {
-      const res = await makeRequest('GET', '/api/provinces');
-      if (res.status === 200 && Array.isArray(res.body) && res.body.length > 0) {
-        log('success', `获取了 ${res.body.length} 个省份`);
-        return true;
-      }
-      throw new Error(`Status ${res.status} or invalid format`);
-    }
-  },
-  {
-    name: '3. 获取初始状态',
-    fn: async () => {
-      const res = await makeRequest('GET', '/api/provinces/state');
-      if (res.status === 200 && res.body.provinces) {
-        log('success', `已点亮: ${res.body.totalLit}, 参与人次: ${res.body.totalSubmissions}`);
+      const res = await makeRequest('GET', '/api/lit/state');
+      if (res.status === 200 && res.body.ok) {
+        log('success', `已点亮: ${res.body.litCount}, 参与人次: ${res.body.totalSubmissions}`);
         return true;
       }
       throw new Error(`Status ${res.status}`);
     }
   },
   {
-    name: '4. 提交点亮请求',
+    name: '3. 提交点亮请求(地名输入)',
     fn: async () => {
-      const res = await makeRequest('POST', '/api/submissions', {
+      const res = await makeRequest('POST', '/api/lights', {
         nickname: '测试用户1',
-        provinceId: '11'
+        placeName: '北京市'
       });
-      if (res.status === 200 && res.body.ok) {
-        log('success', `提交成功 - ${res.body.provinceName}`);
+      if (res.status === 200 && res.body.ok && res.body.matched) {
+        log('success', `提交成功 - ${res.body.matched.name}`);
         return true;
       }
-      throw new Error(`Status ${res.status}: ${res.body.message}`);
+      throw new Error(`Status ${res.status}: ${res.body.message || 'unknown'}`);
     }
   },
   {
-    name: '5. 提交重复点亮',
+    name: '4. 提交重复点亮(同地名)',
     fn: async () => {
-      const res = await makeRequest('POST', '/api/submissions', {
+      const res = await makeRequest('POST', '/api/lights', {
         nickname: '测试用户2',
-        provinceId: '11'
+        placeName: '北京市'
       });
       if (res.status === 200 && res.body.ok) {
-        log('success', '重复点亮同一省份 - OK');
+        log('success', '重复点亮同一地区 - OK');
         return true;
       }
       throw new Error(`Status ${res.status}`);
     }
   },
   {
-    name: '6. 验证统计更新',
+    name: '5. 验证统计更新',
     fn: async () => {
-      const res = await makeRequest('GET', '/api/stats');
-      if (res.status === 200 && res.body.totalSubmissions >= 2) {
+      const res = await makeRequest('GET', '/api/lit/state');
+      if (res.status === 200 && res.body.ok && res.body.totalSubmissions >= 2) {
         log('success', `统计已更新 - 参与人次: ${res.body.totalSubmissions}`);
         return true;
       }
@@ -139,7 +143,7 @@ const tests = [
     }
   },
   {
-    name: '7. 获取二维码',
+    name: '6. 获取二维码',
     fn: async () => {
       const res = await makeRequest('GET', '/api/qrcode');
       if (res.status === 200 && res.body.ok && res.body.qrCode && res.body.url) {
@@ -150,18 +154,18 @@ const tests = [
     }
   },
   {
-    name: '8. 获取提交记录',
+    name: '7. 获取历史提交记录',
     fn: async () => {
-      const res = await makeRequest('GET', '/api/submissions?limit=10');
-      if (res.status === 200 && res.body.data && res.body.total >= 2) {
+      const res = await makeRequest('GET', '/api/history?limit=10');
+      if (res.status === 200 && res.body.ok && Array.isArray(res.body.data)) {
         log('success', `获取 ${res.body.data.length} 条提交记录`);
         return true;
       }
-      throw new Error(`Status ${res.status}`);
+      throw failWithResponse('获取历史提交记录', res);
     }
   },
   {
-    name: '9. 测试错误口令重置',
+    name: '8. 测试错误口令重置',
     fn: async () => {
       const res = await makeRequest('POST', '/api/admin/reset', {
         password: 'wrong_password'
@@ -174,32 +178,32 @@ const tests = [
     }
   },
   {
-    name: '10. 提交不同省份',
+    name: '9. 提交不同地区',
     fn: async () => {
-      const res = await makeRequest('POST', '/api/submissions', {
+      const res = await makeRequest('POST', '/api/lights', {
         nickname: '测试用户3',
-        provinceId: '31'
+        placeName: '上海市'
       });
-      if (res.status === 200 && res.body.ok) {
-        log('success', `新省份点亮 - ${res.body.provinceName}`);
+      if (res.status === 200 && res.body.ok && res.body.matched) {
+        log('success', `新地区点亮 - ${res.body.matched.name}`);
         return true;
       }
       throw new Error(`Status ${res.status}`);
     }
   },
   {
-    name: '11. 验证省份点亮状态',
+    name: '10. 验证点亮状态',
     fn: async () => {
-      const res = await makeRequest('GET', '/api/provinces/state');
-      if (res.status === 200 && res.body.totalLit >= 2) {
-        log('success', `已点亮省份数: ${res.body.totalLit}`);
+      const res = await makeRequest('GET', '/api/lit/state');
+      if (res.status === 200 && res.body.ok && res.body.litCount >= 2) {
+        log('success', `已点亮地区数: ${res.body.litCount}`);
         return true;
       }
       throw new Error(`Status ${res.status}`);
     }
   },
   {
-    name: '12. 正确口令重置',
+    name: '11. 正确口令重置',
     fn: async () => {
       const res = await makeRequest('POST', '/api/admin/reset', {
         password: '2025'
@@ -212,14 +216,14 @@ const tests = [
     }
   },
   {
-    name: '13. 验证重置效果',
+    name: '12. 验证重置效果',
     fn: async () => {
-      const res = await makeRequest('GET', '/api/provinces/state');
-      if (res.status === 200 && res.body.totalLit === 0) {
+      const res = await makeRequest('GET', '/api/lit/state');
+      if (res.status === 200 && res.body.ok && res.body.litCount === 0) {
         log('success', '地图已清空 - 重置成功');
         return true;
       }
-      throw new Error(`重置失败: totalLit = ${res.body.totalLit}`);
+      throw failWithResponse('验证重置效果', res);
     }
   }
 ];
@@ -239,7 +243,8 @@ async function runTests() {
       await test.fn();
       passed++;
     } catch (error) {
-      log('error', `${test.name} - ${error.message}`);
+      const msg = error && typeof error.message === 'string' && error.message.length > 0 ? error.message : String(error);
+      log('error', `${test.name} - ${msg}`);
       failed++;
     }
     

@@ -56,7 +56,7 @@ curl http://localhost:3000/health
 npm install -g pm2
 
 # 启动应用
-pm2 start server/server.js --name "mpit-project"
+pm2 start backend/server.js --name "mpit-project"
 
 # 查看状态
 pm2 status
@@ -68,6 +68,8 @@ pm2 logs mpit-project
 pm2 startup
 pm2 save
 ```
+
+说明：项目后端入口为 `backend/server.js`（不要再使用旧的 `server/` 目录）。
 
 ### 步骤 5：配置 Nginx 反向代理（可选）
 
@@ -130,7 +132,8 @@ certbot --nginx -d your-domain.com
 ```bash
 # 在服务器上
 curl http://localhost:3000/health
-curl http://localhost:3000/api/provinces
+curl http://localhost:3000/api/geo/meta
+curl http://localhost:3000/api/lit/state
 ```
 
 ### 2. 外部访问测试
@@ -154,7 +157,7 @@ curl http://localhost:3000/api/provinces
 ### 5. 性能测试
 ```bash
 # 使用 Apache Bench 测试（如已安装）
-ab -n 100 -c 10 http://localhost:3000/api/provinces
+ab -n 100 -c 10 http://localhost:3000/api/lit/state
 ```
 
 ### 6. 持久化测试
@@ -174,7 +177,7 @@ pm2 restart mpit-project
 module.exports = {
   apps: [{
     name: 'mpit-project',
-    script: 'server/server.js',
+        script: 'backend/server.js',
     instances: 1,
     env: {
       NODE_ENV: 'production',
@@ -196,7 +199,7 @@ pm2 start ecosystem.config.js
 ### 1. 修改管理员密码
 ```bash
 # 通过环境变量设置
-pm2 start server/server.js --name "mpit" -- --env ADMIN_PASSWORD=NewPassword
+ADMIN_PASSWORD=NewPassword pm2 start backend/server.js --name "mpit"
 ```
 
 ### 2. 配置防火墙
@@ -280,7 +283,7 @@ pm2 restart mpit-project
 
 # 完全重启
 pm2 delete mpit-project
-pm2 start server/server.js --name "mpit-project"
+pm2 start backend/server.js --name "mpit-project"
 ```
 
 ### 内存不足

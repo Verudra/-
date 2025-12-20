@@ -31,7 +31,7 @@ npm start
 ### 大屏展示端（推荐全屏打开）
 打开浏览器访问：http://localhost:3000/display.html
 - 显示中国地图
-- 实时点亮已参与的省份
+- 实时点亮已参与的地区（县/区优先，取决于 GeoJSON）
 - 显示统计数据
 - 生成二维码供手机扫描
 - 支持重置和导出数据
@@ -39,7 +39,7 @@ npm start
 ### 手机参与端
 打开浏览器访问：http://localhost:3000/mobile.html
 - 输入昵称
-- 选择省份
+- 输入地区全名（如：广东省深圳市南山区）
 - 提交参与
 
 或在大屏端扫描显示的二维码
@@ -48,8 +48,9 @@ npm start
 
 ### 大屏端特性
 ✅ 实时中国地图显示  
-✅ 已点亮省份标记与涟漪动画  
-✅ 已点亮省份列表显示  
+✅ 已点亮地区面填充 + 新增点亮涟漪  
+✅ 已点亮列表显示（最近）  
+✅ 点亮历史滚动展示  
 ✅ 统计数据实时更新（点亮数、参与人次、在线大屏数）  
 ✅ 生成二维码 URL（本地生成）  
 ✅ 导出参与数据为 JSON  
@@ -58,67 +59,38 @@ npm start
 ### 手机端特性
 ✅ 简洁的参与表单  
 ✅ 昵称字符计数提示  
-✅ 省份下拉列表选择  
+✅ 地区全名输入 + 自动匹配  
 ✅ 防重复提交保护  
-✅ 限流防刷（5秒内最多提交3次）  
+✅ 限流防刷（按 IP 时间窗限制）  
 ✅ 提交成功动画反馈  
 ✅ 自动表单重置  
 
 ## 四、API 接口
 
-### 获取省份列表
+### GeoJSON（大屏地图）
 ```bash
-GET /api/provinces
+GET /api/geo/china
+```
 
-Response:
-[
-  { "id": "11", "name": "北京市" },
-  ...
-]
+### Geo 元信息
+```bash
+GET /api/geo/meta
 ```
 
 ### 获取当前点亮状态
 ```bash
-GET /api/provinces/state
-
-Response:
-{
-  "provinces": [
-    {
-      "id": "11",
-      "name": "北京市",
-      "isLit": true,
-      "litAt": "2025-12-16T00:30:00.000Z",
-      "firstNickname": "小明"
-    }
-  ],
-  "totalLit": 5,
-  "totalSubmissions": 8
-}
+GET /api/lit/state
 ```
 
-### 提交点亮
+### 提交点亮（地名输入）
 ```bash
-POST /api/submissions
+POST /api/lights
 Content-Type: application/json
 
 Request:
 {
   "nickname": "小明",
-  "provinceId": "11"
-}
-
-Response:
-{
-  "ok": true,
-  "message": "提交成功",
-  "lit": true,
-  "provinceName": "北京市",
-  "stats": {
-    "litCount": 5,
-    "totalSubmissions": 8,
-    "clientsConnected": 1
-  }
+  "placeName": "广东省深圳市南山区"
 }
 ```
 
@@ -134,18 +106,9 @@ Response:
 }
 ```
 
-### 获取统计信息
+### 获取历史提交记录
 ```bash
-GET /api/stats
-
-Response:
-{
-  "ok": true,
-  "litCount": 5,
-  "totalSubmissions": 8,
-  "clientsConnected": 1,
-  "provinces": [...]
-}
+GET /api/history?limit=100
 ```
 
 ### 重置地图（管理员）
@@ -165,24 +128,9 @@ Response:
 }
 ```
 
-### 获取提交记录
+### 健康检查
 ```bash
-GET /api/submissions?limit=100
-
-Response:
-{
-  "ok": true,
-  "total": 8,
-  "data": [
-    {
-      "id": "1702675200000abc123",
-      "nickname": "小明",
-      "provinceId": "11",
-      "createdAt": "2025-12-16T00:30:00.000Z",
-      "clientIp": "127.0.0.1"
-    }
-  ]
-}
+GET /health
 ```
 
 ### 健康检查
@@ -247,7 +195,7 @@ PORT=3000 npm start
 npm install -g pm2
 
 # 启动服务
-pm2 start server/server.js --name "mpit-project"
+pm2 start backend/server.js --name "mpit-project"
 
 # 查看运行状态
 pm2 status
@@ -357,9 +305,9 @@ kill -9 <PID>
 - 确认网络连接正常
 - 查看服务器日志是否有错误
 
-### 限流（5秒内最多提交3次）
+### 限流
 - 这是防刷机制，正常用户不会触发
-- 等待 5 秒后可重新提交
+- 如被限流，稍等片刻再试
 
 ## 九、本地测试技巧
 
@@ -370,16 +318,16 @@ kill -9 <PID>
 
 ### 快速测试 API
 ```bash
-# 获取省份列表
-curl http://localhost:3000/api/provinces
+# 查看 Geo 元信息
+curl http://localhost:3000/api/geo/meta
+
+# 获取点亮状态
+curl http://localhost:3000/api/lit/state
 
 # 提交点亮
-curl -X POST http://localhost:3000/api/submissions \
+curl -X POST http://localhost:3000/api/lights \
   -H "Content-Type: application/json" \
-  -d '{"nickname":"测试用户","provinceId":"11"}'
-
-# 获取统计
-curl http://localhost:3000/api/stats
+  -d '{"nickname":"测试用户","placeName":"北京市"}'
 
 # 重置地图
 curl -X POST http://localhost:3000/api/admin/reset \
@@ -387,7 +335,7 @@ curl -X POST http://localhost:3000/api/admin/reset \
   -d '{"password":"2025"}'
 
 # 导出数据
-curl http://localhost:3000/api/submissions?limit=10000 > data.json
+curl http://localhost:3000/api/history?limit=10000 > data.json
 ```
 
 ## 十、性能优化建议

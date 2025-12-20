@@ -2,7 +2,7 @@
 
 ## 🎯 项目介绍
 
-这是一个实时互动的跨年活动项目。大屏展示中国地图，现场观众通过扫码在手机上选择省份并点亮，大屏实时显示点亮效果。
+这是一个实时互动的跨年活动项目。大屏展示中国地图（可精确到县/区，取决于 GeoJSON 数据），现场观众通过扫码在手机端输入地区全名，服务端自动匹配对应行政区并点亮，大屏实时显示点亮效果与历史滚动记录。
 
 ## ✨ 核心功能（已实现）
 
@@ -17,18 +17,24 @@
 - ✅ **重置功能**：密码保护的地图重置
 
 ### 📱 手机参与端 (`/mobile.html`)
-- ✅ **简洁表单**：昵称输入 + 省份选择
+- ✅ **简洁表单**：昵称输入 + 地区全名输入
 - ✅ **字符计数**：实时显示昵称字数
 - ✅ **防重复提交**：客户端防抖 + 限流保护
 - ✅ **错误提示**：明确的错误反馈
 - ✅ **成功动画**：提交成功的视觉反馈
 - ✅ **自动重置**：3秒后表单自动清空
 
-### 🔧 后端服务 (`server/server.js`)
+### 🧾 历史记录（大屏滚动）
+- ✅ **滚动展示**：显示最近点亮记录
+- ✅ **断线恢复**：WebSocket 初始态携带 history，HTTP 兜底拉取
+
+### 🔧 后端服务 (`backend/server.js`)
 - ✅ **Express 框架**：HTTP 服务器
 - ✅ **WebSocket**：实时双向通信
 - ✅ **文件存储**：JSON 文件持久化（`data/state.json`）
-- ✅ **限流保护**：5秒内最多提交3次（可配置）
+- ✅ **GeoJSON 加载**：支持县/区级地图（优先 `data/geo/china-county.json`，失败回退省级）
+- ✅ **地名匹配**：输入地区全名自动匹配行政区
+- ✅ **限流保护**：提交接口按 IP 限流（可配置）
 - ✅ **Gzip 压缩**：自动压缩响应
 - ✅ **CORS 支持**：跨域请求支持
 - ✅ **健康检查**：`/health` 端点
@@ -43,9 +49,10 @@ MpItProject/
 ├── DEPLOY.md                 # 部署指南（完整）
 ├── .gitignore                # Git 忽略文件
 ├── test-api.js               # API 测试脚本
-├── server/
+├── backend/
 │   ├── server.js             # 主服务器（Express + WebSocket）
 │   ├── storage.js            # 数据持久化模块
+│   ├── geoIndex.js           # GeoJSON 索引与地名匹配
 │   └── rateLimit.js          # 限流中间件
 ├── public/
 │   ├── display.html          # 大屏展示页
@@ -91,29 +98,35 @@ npm start
 
 ### 公开 API
 
-#### 获取省份列表
+#### GeoJSON（大屏地图）
 ```http
-GET /api/provinces
+GET /api/geo/china
 ```
-返回 31 个省级行政区数组。
+返回用于 ECharts `registerMap` 的 GeoJSON。
 
-#### 获取当前状态
+#### Geo 元信息
 ```http
-GET /api/provinces/state
+GET /api/geo/meta
 ```
-返回所有省份点亮状态和统计信息。
+返回当前使用的地图数据来源与 feature 数。
 
-#### 提交点亮
+#### 获取当前点亮状态
 ```http
-POST /api/submissions
+GET /api/lit/state
+```
+返回已点亮地区列表与统计信息。
+
+#### 提交点亮（地名输入）
+```http
+POST /api/lights
 Content-Type: application/json
 
 {
   "nickname": "小明",
-  "provinceId": "11"
+  "placeName": "广东省深圳市南山区"
 }
 ```
-限流：5秒内最多3次提交。
+服务端会自动匹配到具体行政区（县/区优先，取决于数据）。
 
 #### 获取二维码
 ```http
@@ -121,17 +134,11 @@ GET /api/qrcode
 ```
 返回 Base64 编码的二维码图片。
 
-#### 获取统计
+#### 获取历史提交记录
 ```http
-GET /api/stats
+GET /api/history?limit=100
 ```
-返回点亮数、参与人次、在线大屏数。
-
-#### 获取提交记录
-```http
-GET /api/submissions?limit=100
-```
-返回最近的提交记录（默认最多 1000 条）。
+返回最近的提交记录（用于大屏滚动展示/导出）。
 
 ### 管理 API
 
@@ -159,7 +166,7 @@ GET /health
 ### 方法 1：PM2（推荐）
 ```bash
 npm install -g pm2
-pm2 start server/server.js --name "mpit"
+pm2 start backend/server.js --name "mpit"
 pm2 save
 pm2 startup
 ```
@@ -181,7 +188,7 @@ After=network.target
 Type=simple
 User=www-data
 WorkingDirectory=/var/www/mpit
-ExecStart=/usr/bin/node server/server.js
+ExecStart=/usr/bin/node backend/server.js
 Restart=always
 Environment=PORT=3000
 Environment=NODE_ENV=production
@@ -211,7 +218,7 @@ ADMIN_PASSWORD=MySecretPassword
 ```
 
 ### 限流配置
-编辑 `server/rateLimit.js`：
+编辑 `backend/rateLimit.js`：
 ```javascript
 const CONFIG = {
   windowMs: 60 * 1000,        // 一般限流窗口：60秒
@@ -234,18 +241,17 @@ node test-api.js
 
 测试内容包括：
 1. ✅ 健康检查
-2. ✅ 获取省份列表
-3. ✅ 获取初始状态
-4. ✅ 提交点亮请求
-5. ✅ 提交重复点亮
-6. ✅ 验证统计更新
-7. ✅ 获取二维码
-8. ✅ 获取提交记录
-9. ✅ 测试错误口令重置
-10. ✅ 提交不同省份
-11. ✅ 验证省份点亮状态
-12. ✅ 正确口令重置
-13. ✅ 验证重置效果
+2. ✅ 获取点亮状态
+3. ✅ 提交点亮（地名输入）
+4. ✅ 提交重复点亮
+5. ✅ 验证统计更新
+6. ✅ 获取二维码
+7. ✅ 获取历史提交记录
+8. ✅ 测试错误口令重置
+9. ✅ 提交不同地区
+10. ✅ 验证点亮状态
+11. ✅ 正确口令重置
+12. ✅ 验证重置效果
 
 ## 📈 性能指标
 
@@ -269,18 +275,23 @@ node test-api.js
 ### state.json 示例
 ```json
 {
-  "provinceLitState": {
-    "11": {
+  "litRegionState": {
+    "110000": {
       "isLit": true,
       "litAt": "2025-12-16T00:30:00.000Z",
-      "firstNickname": "小明"
+      "firstNickname": "小明",
+      "matchedName": "北京市"
     }
   },
   "submissions": [
     {
       "id": "1702675200000abc123",
       "nickname": "小明",
-      "provinceId": "11",
+      "inputPlaceName": "北京市",
+      "matched": {
+        "id": "110000",
+        "name": "北京市"
+      },
       "createdAt": "2025-12-16T00:30:00.000Z",
       "clientIp": "127.0.0.1"
     }
@@ -298,7 +309,12 @@ node test-api.js
 调整 CSS `@keyframes` 和 ECharts `rippleEffect` 参数。
 
 ### 修改省份列表
-编辑 `server/storage.js` 中的 `PROVINCES` 数组。
+如需调整历史数据迁移的省级兜底名称，编辑 `backend/storage.js` 中的 `PROVINCES` 数组。
+
+### 调整地名匹配
+编辑 `backend/geoIndex.js`：
+- GeoJSON 文件优先级与别名
+- 归一化规则与相似度阈值
 
 ## 🚨 故障排除
 
