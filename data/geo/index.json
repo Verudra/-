@@ -1,0 +1,16 @@
+{
+  "type": "multi-level-geo-data",
+  "version": "1.0.0",
+  "source": "aliyun-datav",
+  "lastUpdated": "2025-12-19T17:46:53.587Z",
+  "summary": {
+    "provinces": 33,
+    "cities": 329,
+    "districts": 2728
+  },
+  "files": {
+    "china": "china-province.json",
+    "provinces": "provinces/",
+    "cities": "cities/"
+  }
+}
