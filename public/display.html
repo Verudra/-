@@ -13,9 +13,9 @@
       box-sizing: border-box;
     }
 
-    body {
+    body { /* 背景透明，防止遮挡 */
       font-family: 'Arial', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: none;
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -27,12 +27,13 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
-      background: #1a1a2e;
+      background: url('./pics/BG2.png') no-repeat center center;
+      background-size: contain;
       color: white;
     }
 
     .header {
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(49, 74, 67, 1);
       padding: 20px;
       text-align: center;
       border-bottom: 3px solid #667eea;
@@ -42,7 +43,7 @@
     .header h1 {
       font-size: 2.5em;
       margin-bottom: 10px;
-      background: linear-gradient(135deg, #667eea, #764ba2);
+      background: linear-gradient(100deg, #e10707, #e10707);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -59,10 +60,10 @@
     }
 
     .stat-item {
-      background: rgba(102, 126, 234, 0.15);
+      background: rgba(49, 74, 67, 1);
       padding: 10px 20px;
       border-radius: 25px;
-      border: 2px solid #667eea;
+      border: 2px solid #e10707;
       display: flex;
       align-items: center;
       gap: 10px;
@@ -98,7 +99,8 @@
       position: relative;
       overflow: hidden;
       border-radius: 12px;
-      border: 2px solid rgba(102, 126, 234, 0.35);
+      border: 2px solid rgba(254, 186, 7, 1);
+      background: rgba(237, 81, 38, 0.3); /* 半透明黑色蒙版，增加地图对比度 */
     }
 
     .right-column {
@@ -107,17 +109,17 @@
       flex-direction: column;
       gap: 14px;
       height: 100%;
-      background: rgba(0, 0, 0, 0.35);
-      border-left: 3px solid rgba(102, 126, 234, 0.7);
+      background: rgba(244, 67, 54, 0.35);
+      border-left: 3px solid rgba(254, 186, 7, 1);
       padding: 14px 14px 14px 18px;
     }
-
+/* rgba(237,81,38) */
     .side-panel {
-      background: rgba(0, 0, 0, 0.86);
+      background: rgba(49, 74, 67, 1);
       padding: 18px;
       border-radius: 12px;
       backdrop-filter: blur(10px);
-      border: 2px solid rgba(102, 126, 234, 0.3);
+      border: 2px solid rgba(254, 186, 7, 0.35);
       z-index: 50;
     }
 
@@ -197,7 +199,7 @@
       position: absolute;
       top: 30px;
       right: 30px;
-      background: rgba(0, 0, 0, 0.8);
+      background: rgba(244, 67, 54, 0.9);
       padding: 15px 20px;
       border-radius: 25px;
       backdrop-filter: blur(10px);
@@ -303,7 +305,7 @@
     .url-display {
       margin-top: 12px;
       font-size: 0.75em;
-      color: #667eea;
+      color: #a4cab6;
       word-break: break-all;
       line-height: 1.4;
     }
@@ -323,7 +325,7 @@
     }
 
     .history-title {
-      color: #aaa;
+      color: #a4cab6;
       font-size: 0.8em;
       text-transform: uppercase;
       margin-bottom: 8px;
@@ -341,7 +343,7 @@
 
     .history-item {
       font-size: 0.85em;
-      color: #ddd;
+      color: #e2e7bf;
       line-height: 1.6;
       white-space: nowrap;
       overflow: hidden;
@@ -349,12 +351,12 @@
     }
 
     .history-item .name {
-      color: #ffb74d;
+      color: #fc7930;
       font-weight: bold;
     }
 
     .history-item .place {
-      color: #b6c2ff;
+      color: #a4cab6;
       font-weight: bold;
     }
 
@@ -494,7 +496,7 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>🎉 跨年互动地图</h1>
+      <h1>跨年互动地图</h1>
       <div class="stats">
         <div class="stat-item">
           <span class="stat-value" id="litCount">0</span>
@@ -548,14 +550,14 @@
       <div class="right-column">
         <div class="side-panel">
           <div class="history-list">
-            <div class="history-title">🕒 点亮记录（滚动）</div>
+            <div class="history-title">点亮记录</div>
             <div class="history-box" id="historyBox"></div>
           </div>
         </div>
 
         <div class="side-panel">
           <div class="qrcode-section">
-            <p>📱 扫码参与</p>
+            <p>扫码参与</p>
             <div id="qrcode"></div>
             <div class="url-display" id="urlDisplay"></div>
           </div>
@@ -563,10 +565,10 @@
           <div class="divider"></div>
 
           <div class="admin-panel">
-            <div class="admin-title">⚙️ 管理</div>
-            <button class="admin-btn" onclick="initializeMapView()">🧭 初始化视图</button>
-            <button class="admin-btn danger" onclick="resetMap()">🔄 重置数据</button>
-            <button class="admin-btn secondary" onclick="downloadStats()">📥 导出数据</button>
+            <div class="admin-title">管理</div>
+            <button class="admin-btn" onclick="initializeMapView()">初始化视图</button>
+            <button class="admin-btn danger" onclick="resetMap()">重置数据</button>
+            <button class="admin-btn secondary" onclick="downloadStats()">导出数据</button>
           </div>
         </div>
       </div>
@@ -1272,16 +1274,25 @@
     };
 
     // 颜色映射（按点亮次数）
-    const COLOR_L1 = '#f6cec1'; // 淡桃红色 RGB(246,206,193)
-    const COLOR_L2 = '#e8b49a'; // 玉粉红 RGB(232,180,154)
-    const COLOR_L3 = '#f0945d'; // 海螺橙 RGB(240,148,93)
-
+    const COLOR_L1 = '#be4600'; 
+    const COLOR_L2 = '#ff9455'; 
+    const COLOR_L3 = '#ffd192'; 
+    const COLOR_L1_F = '#ffd192';
+    const COLOR_L2_F = '#ffd192'; 
+    const COLOR_L3_F = '#f27635';
     function colorForCount(count) {
       const c = Number(count || 0);
       if (c >= 20) return COLOR_L3;
       if (c < 5) return COLOR_L1;
       // 5~19：按需求未给出更细分色阶，统一用玉粉红
       return COLOR_L2;
+    }
+    function colorForCountFont(count) {
+      const c = Number(count || 0);
+      if (c >= 20) return COLOR_L3_F;
+      if (c < 5) return COLOR_L1_F;
+      // 5~19：按需求未给出更细分色阶，统一用玉粉红
+      return COLOR_L2_F;
     }
 
     function isAdcode6(s) {
@@ -2010,28 +2021,28 @@
               regions: [],
               label: { show: false },
               itemStyle: {
-                areaColor: '#323c48',
-                borderColor: '#516b7d',
-                borderWidth: 1.6
+                areaColor: 'rgba(100, 72, 61, 0.85)', // 增加不透明度，使地图更清晰
+                borderColor: '#fbb929', // 省级地图边框
+                borderWidth: 1.4
               },
               emphasis: {
-                label: {
+                label: {// 鼠标悬浮在省时的省名样式
                   show: true,
-                  color: '#667eea',
+                  color: '#ffd700', //名字颜色
                   fontSize: 14
                 },
                 itemStyle: {
-                  areaColor: 'rgba(102, 126, 234, 0.1)',
-                  borderColor: '#667eea',
-                  borderWidth: 2
+                  areaColor: 'rgba(171, 55, 47, 0.8)', // 鼠标悬浮省份颜色
+                  borderColor: '#ffd700',
+                  borderWidth: 1.6
                 }
               },
               // 避免“点击选中变黄”的默认 select 样式
               select: {
                 label: { show: false },
                 itemStyle: {
-                  areaColor: '#323c48',
-                  borderColor: '#516b7d',
+                  areaColor: 'rgba(251, 185, 41, 0.7)', //不会显示，没用
+                  borderColor: '#fbb929',
                   borderWidth: 1.6
                 }
               }
@@ -2045,15 +2056,19 @@
               boundingCoords: CHINA_BOUNDING_COORDS || undefined,
               label: { show: false },
               itemStyle: {
-                areaColor: 'transparent',
-                borderColor: 'rgba(102, 126, 234, 0.75)',
+                areaColor: 'transparent',// 市级底色
+                borderColor: 'rgba(239, 175, 173, 0.75)', // 市级边界颜色
                 borderWidth: 0.9
               },
               emphasis: {
-                label: { show: true, color: '#b6c2ff', fontSize: 12 },
+                label: {
+                  show: true,
+                  color: '#ab372f', // 市级文字
+                  fontSize: 12
+                },
                 itemStyle: {
-                  areaColor: 'transparent',
-                  borderColor: 'rgba(102, 126, 234, 0.95)',
+                  areaColor: 'rgba(251, 185, 41, 0.7)', // 市级悬浮底色
+                  borderColor: 'rgba(255, 215, 0, 0.95)',
                   borderWidth: 1.4
                 }
               },
@@ -2069,14 +2084,18 @@
               label: { show: false },
               itemStyle: {
                 areaColor: 'transparent',
-                borderColor: 'rgba(255, 183, 77, 0.55)',
+                borderColor: 'rgba(239, 175, 173, 0.75)', 
                 borderWidth: 0.6
               },
               emphasis: {
-                label: { show: true, color: '#ffb74d', fontSize: 11 },
+                label: {
+                  show: true,
+                  color: '#ab372f', // 县级字体
+                  fontSize: 11
+                },
                 itemStyle: {
-                  areaColor: 'transparent',
-                  borderColor: 'rgba(255, 183, 77, 0.85)',
+                  areaColor: 'rgba(251, 185, 41, 0.7)',// 县级悬浮底色
+                  borderColor: 'rgba(255, 215, 0, 0.85)',
                   borderWidth: 1.0
                 }
               },
@@ -2272,7 +2291,10 @@
         provinceRegions.push({
           name,
           itemStyle: { areaColor: colorForCount(cnt) },
-          emphasis: { itemStyle: { areaColor: colorForCount(cnt) } }
+          emphasis: { 
+            itemStyle: { areaColor: colorForCount(cnt) },
+            label: { show: true, fontSize: 12, color: colorForCountFont(cnt) }
+          }
         });
       }
 
@@ -2289,7 +2311,10 @@
           cityRegions.push({
             name,
             itemStyle: { areaColor: colorForCount(cnt) },
-            emphasis: { itemStyle: { areaColor: colorForCount(cnt) } }
+            emphasis: { 
+              itemStyle: { areaColor: colorForCount(cnt) },
+              label: { show: true, fontSize: 12, color: colorForCountFont(cnt) }
+            }
           });
         }
       }
@@ -2306,7 +2331,10 @@
           districtRegions.push({
             name,
             itemStyle: { areaColor: colorForCount(cnt) },
-            emphasis: { itemStyle: { areaColor: colorForCount(cnt) } }
+            emphasis: { 
+              itemStyle: { areaColor: colorForCount(cnt) },
+              label: { show: true, fontSize: 12, color: colorForCountFont(cnt) }
+            }
           });
         }
       }
