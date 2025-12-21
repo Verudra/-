@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>跨年互动地图 - 大屏展示</title>
-  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
   <!-- 注意：ECharts 中国地图需要额外注册 map 数据（china.json），否则 map: 'china' 无法渲染 -->
   <style>
     * {
@@ -608,26 +608,247 @@
     const autoFocusQueue = [];
     let autoFocusProcessing = false;
 
+    function isChartUsable() {
+      if (!chart || !chartReady) return false;
+      try {
+        if (typeof chart.isDisposed === 'function' && chart.isDisposed()) return false;
+        if (typeof chart.getDom === 'function' && !chart.getDom()) return false;
+      } catch {
+        return false;
+      }
+      return true;
+    }
+
     // 地图上“步骤提示”文字（省/市/区县）
     let focusLabelTimer = null;
+    let fireworkTimer = null;
+
+    // 当前正在播放的烟花 graphic group id（用于可靠移除，避免 id 冲突）
+    let currentFireworkGroupId = null;
+
+    // 在 initECharts 前也会被引用：先声明避免 TDZ
+    let CHINA_BOUNDING_COORDS = null;
+
+    // 让“地区字/烟花”锚定在经纬度：拖动/缩放时可实时重算像素位置
+    let focusLabelState = null; // { text, coord:[lng,lat], geoIndex }
 
     function delay(ms) {
       return new Promise(resolve => setTimeout(resolve, ms));
     }
 
+    function normalizeLonLat(coord) {
+      /*
+      标准化经纬度坐标为 [lon, lat] 格式
+      */
+      if (!Array.isArray(coord) || coord.length !== 2) return null;
+      let a = Number(coord[0]);
+      let b = Number(coord[1]);
+      if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+
+      const cand1 = [a, b];
+      const cand2 = [b, a];
+
+      function inChinaBounds(c) {
+        if (!CHINA_BOUNDING_COORDS) return false;
+        const lt = CHINA_BOUNDING_COORDS?.[0];
+        const rb = CHINA_BOUNDING_COORDS?.[1];
+        if (!Array.isArray(lt) || !Array.isArray(rb)) return false;
+        const minLon = Number(lt[0]);
+        const maxLon = Number(rb[0]);
+        const maxLat = Number(lt[1]);
+        const minLat = Number(rb[1]);
+        const lon = Number(c?.[0]);
+        const lat = Number(c?.[1]);
+        if (![minLon, maxLon, minLat, maxLat, lon, lat].every(Number.isFinite)) return false;
+        return lon >= minLon - 1 && lon <= maxLon + 1 && lat >= minLat - 1 && lat <= maxLat + 1;
+      }
+
+      // 范围粗略：lon ~ [70, 140], lat ~ [10, 60]
+      const looksLikeChinaLonLat = (c) => {
+        const lon = Number(c?.[0]);
+        const lat = Number(c?.[1]);
+        if (!Number.isFinite(lon) || !Number.isFinite(lat)) return false;
+        if (inChinaBounds(c)) return true;
+        return lon >= 70 && lon <= 140 && lat >= 10 && lat <= 60;
+      };
+
+      // 优先选择“更像中国经纬度”的排列
+      const ok1 = looksLikeChinaLonLat(cand1);
+      const ok2 = looksLikeChinaLonLat(cand2);
+      if (ok1 && !ok2) return cand1;
+      if (ok2 && !ok1) return cand2;
+
+      // 兜底：若疑似传入 [lat, lon]，做一次交换修正
+      const looksLikeLat = (x) => x >= 0 && x <= 60;
+      const looksLikeLon = (x) => x >= 70 && x <= 150;
+      if (looksLikeLat(a) && looksLikeLon(b)) return [b, a];
+      return cand1;
+    }
+
+    function isLonLatInChina(coord) {
+      /*
+      判断经纬度是否在中国范围内
+      */
+      const c = normalizeLonLat(coord);
+      if (!c) return false;
+      const lon = Number(c[0]);
+      const lat = Number(c[1]);
+      if (!Number.isFinite(lon) || !Number.isFinite(lat)) return false;
+
+      if (CHINA_BOUNDING_COORDS) {
+        const lt = CHINA_BOUNDING_COORDS?.[0];
+        const rb = CHINA_BOUNDING_COORDS?.[1];
+        if (Array.isArray(lt) && Array.isArray(rb)) {
+          const minLon = Number(lt[0]);
+          const maxLon = Number(rb[0]);
+          const maxLat = Number(lt[1]);
+          const minLat = Number(rb[1]);
+          if ([minLon, maxLon, minLat, maxLat].every(Number.isFinite)) {
+            return lon >= minLon - 1 && lon <= maxLon + 1 && lat >= minLat - 1 && lat <= maxLat + 1;
+          }
+        }
+      }
+
+      return lon >= 70 && lon <= 140 && lat >= 10 && lat <= 60;
+    }
+
     function pickFeatureCoord(feature) {
+      /*
+      从 GeoJSON Feature 中提取经纬度坐标
+      */
       const props = feature?.properties || {};
       const c = props?.centroid || props?.center || props?.cp;
       if (!Array.isArray(c) || c.length !== 2) return null;
       const x = Number(c[0]);
       const y = Number(c[1]);
       if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-      return [x, y];
+      return normalizeLonLat([x, y]);
+    }
+
+    function pickMatchedCoord(matched) {
+      /*
+      从匹配结果中提取经纬度坐标
+      */
+      const rawId = String(matched?.id || '').trim();
+      const lvl = matched?.level || inferLevelFromAdcode(rawId);
+      const id = normalizeRegionIdByLevel(rawId, lvl);
+      let raw = matched?.centroid || litRegionsMetaById?.[id]?.centroid;
+
+      // 兼容 meta 使用短码（省2位、市4位）存储的情况
+      if (!raw && /^\d{6}$/.test(id)) {
+        if (id.endsWith('0000')) raw = litRegionsMetaById?.[id.slice(0, 2)]?.centroid;
+        else if (id.endsWith('00')) raw = litRegionsMetaById?.[id.slice(0, 4)]?.centroid;
+      }
+      if (Array.isArray(raw) && raw.length === 2) {
+        const x = Number(raw[0]);
+        const y = Number(raw[1]);
+        if (Number.isFinite(x) && Number.isFinite(y)) return normalizeLonLat([x, y]);
+      }
+      return null;
+    }
+
+    function geoIndexForLevel(level) {
+      /*
+      获取 ECharts geo 组件索引
+      */
+      if (level === 'city') return 1;
+      if (level === 'district') return 2;
+      return 0;
+    }
+
+    function regionNameForLevelId(level, id) {
+      /*
+      根据层级和 ID 获取地区名称
+      */
+      const sid = String(id || '').trim();
+      if (!sid) return '';
+      if (level === 'city') return cityFeatureNameById?.get(sid) || '';
+      if (level === 'district') return districtFeatureNameById?.get(sid) || '';
+      return provinceFeatureNameById?.get(sid) || '';
+    }
+
+    function getRegionCenterFromECharts(level, id) {
+      /*
+      从 ECharts geo 组件获取地区中心点坐标
+      */
+      if (!chart || !chartReady) return null;
+      const name = regionNameForLevelId(level, id);
+      if (!name) return null;
+      const gi = geoIndexForLevel(level);
+      try {
+        const model = chart.getModel && chart.getModel();
+        const geoComp = model?.getComponent ? model.getComponent('geo', gi) : null;
+        const cs = geoComp?.coordinateSystem;
+        const region = cs?.getRegion ? cs.getRegion(name) : null;
+        const center = region?.getCenter ? region.getCenter() : null;
+        const c = normalizeLonLat(center);
+        if (c && isLonLatInChina(c)) return { coord: c, geoIndex: gi };
+      } catch {
+        // ignore
+      }
+      return null;
+    }
+
+    function resolveAnchorForLevel(level, id, fallbackCoord) {
+      /*
+      解析指定层级和 ID 的锚点坐标
+      */
+      const fromCs = getRegionCenterFromECharts(level, id);
+      if (fromCs?.coord) return fromCs;
+      const c = normalizeLonLat(fallbackCoord);
+      if (c && isLonLatInChina(c)) return { coord: c, geoIndex: geoIndexForLevel(level) };
+      return null;
+    }
+
+    function updateFocusLabelPosition() {
+      /*
+      更新焦点标签位置（拖动/缩放时调用）
+      */
+      if (!chart || !chartReady) return;
+      if (!focusLabelState?.coord || !focusLabelState?.text) return;
+      const px = chart.convertToPixel({ geoIndex: 0 }, focusLabelState.coord);
+      if (!Array.isArray(px) || px.length !== 2) return;
+
+      const w = chart.getWidth ? chart.getWidth() : 0;
+      const h = chart.getHeight ? chart.getHeight() : 0;
+      let left = Number(px[0]);
+      let top = Number(px[1]);
+      if (!Number.isFinite(left) || !Number.isFinite(top)) return;
+
+      const margin = 14;
+      const yOffsetUp = 26;
+      const yOffsetDown = 28;
+      const xMaxShift = 90;
+      if (top < 60) top += yOffsetDown;
+      else top -= yOffsetUp;
+      if (w > 0) {
+        if (left < margin + xMaxShift) left = Math.max(margin, left + xMaxShift * 0.6);
+        if (left > w - margin - xMaxShift) left = Math.min(w - margin, left - xMaxShift * 0.6);
+      }
+      if (h > 0 && top > h - 40) top = h - 40;
+
+      chart.setOption(
+        {
+          graphic: [
+            {
+              id: 'focusLabel',
+              left,
+              top,
+              style: { text: String(focusLabelState.text) }
+            }
+          ]
+        },
+        { notMerge: false, lazyUpdate: true, silent: true }
+      );
     }
 
     function clearFocusLabel() {
+      /*
+      清除焦点标签
+      */
       if (focusLabelTimer) clearTimeout(focusLabelTimer);
       focusLabelTimer = null;
+      focusLabelState = null;
       if (!chart || !chartReady) return;
       chart.setOption(
         {
@@ -643,14 +864,41 @@
     }
 
     function showFocusLabel(text, coord, durationMs = 1000) {
+      /*
+      显示焦点标签
+      */
       if (!chart || !chartReady) return;
       if (!text || !coord) return;
       clearFocusLabel();
-      const px = chart.convertToPixel({ geoIndex: 0 }, coord);
+      const c = normalizeLonLat(coord);
+      if (!c) return;
+      focusLabelState = { text: String(text), coord: c, geoIndex: 0 };
+      const px = chart.convertToPixel({ geoIndex: 0 }, c);
       if (!Array.isArray(px) || px.length !== 2) return;
-      const left = Number(px[0]);
-      const top = Number(px[1]);
+      const w = chart.getWidth ? chart.getWidth() : 0;
+      const h = chart.getHeight ? chart.getHeight() : 0;
+      let left = Number(px[0]);
+      let top = Number(px[1]);
       if (!Number.isFinite(left) || !Number.isFinite(top)) return;
+
+      // 位置动态偏移：默认在点上方；靠近边缘则自动翻转/内收
+      const margin = 14;
+      const yOffsetUp = 26;
+      const yOffsetDown = 28;
+      const xMaxShift = 90;
+
+      // 上边缘太近：放到点下方
+      if (top < 60) top += yOffsetDown;
+      else top -= yOffsetUp;
+
+      // 左右边缘：向内收
+      if (w > 0) {
+        if (left < margin + xMaxShift) left = Math.max(margin, left + xMaxShift * 0.6);
+        if (left > w - margin - xMaxShift) left = Math.min(w - margin, left - xMaxShift * 0.6);
+      }
+
+      // 下边缘：再向上收一点
+      if (h > 0 && top > h - 40) top = h - 40;
 
       chart.setOption(
         {
@@ -680,6 +928,316 @@
       focusLabelTimer = setTimeout(() => clearFocusLabel(), durationMs);
     }
 
+    function clearFirework() {
+      if (fireworkTimer) clearTimeout(fireworkTimer);
+      fireworkTimer = null;
+      fireworkSeq++;
+      if (!chart || !chartReady) return;
+
+      const gid = currentFireworkGroupId;
+      currentFireworkGroupId = null;
+      if (!gid) return;
+      chart.setOption(
+        {
+          graphic: [
+            {
+              id: gid,
+              $action: 'remove'
+            }
+          ]
+        },
+        { notMerge: false, lazyUpdate: false, silent: true }
+      );
+    }
+
+    // 烟花动画取消 token：避免 auto-return/新点亮时旧 rAF 继续更新导致错位/残留
+    let fireworkSeq = 0;
+    let mapFadecnt = 0;
+
+
+    function playMapFadeIn(durationMs = 420, maxAlpha = 0.28) {
+      /*
+      播放地图淡入动画
+      */
+      if (!chart || !chartReady) return Promise.resolve();
+      const start = performance.now();
+      const currentCnt = mapFadecnt ++;
+      return new Promise(resolve => {
+        function step(now) {
+          const t = clamp((now - start) / durationMs, 0, 1);
+          const k = 1 - t;
+          const a = maxAlpha * k;
+          chart.setOption(
+            {
+              graphic: [
+                {
+                  id: `mapFade_${currentCnt}`,
+                  type: 'rect',
+                  silent: true,
+                  left: 0,
+                  top: 0,
+                  shape: { x: 0, y: 0, width: chart.getWidth(), height: chart.getHeight() },
+                  style: { fill: `rgba(0,0,0,${a.toFixed(4)})` },
+                  z: 998
+                }
+              ]
+            },
+            { notMerge: false, lazyUpdate: true, silent: true }
+          );
+
+          if (t < 1) requestAnimationFrame(step);
+          else {
+            chart.setOption(
+              { graphic: [{ id: `mapFade_${currentCnt}`, $action: 'remove' }] },
+              { notMerge: false, lazyUpdate: true, silent: true }
+            );
+            resolve();
+          }
+        }
+        requestAnimationFrame(step);
+      });
+    }
+    
+    function playFireworkAt(coord, blessingText = '马年吉祥', geoIndex = 0) {
+      if (!chart || !chartReady) return Promise.resolve();
+      if (!coord) return Promise.resolve();
+      clearFirework();
+
+      // 每次发射使用唯一 id，避免 ECharts graphic 复用/移除时的竞态与冲突
+      const mySeq = fireworkSeq;
+      const groupId = `firework_${mySeq}`;
+      currentFireworkGroupId = groupId;
+
+      // 固定用 base geo 做像素换算，避免 overlay 坐标系/显示状态引入偏移
+      const gi = geoIndex;
+
+      const c = normalizeLonLat(coord);
+      if (!c) return Promise.resolve();
+
+      const px = chart.convertToPixel({ geoIndex: gi }, c);
+      if (!Array.isArray(px) || px.length !== 2) return Promise.resolve();
+      const x = Number(px[0]);
+      const y = Number(px[1]);
+      console.log('📍 烟花目标地理坐标:', c);
+      console.log('🖥️ 烟花目标像素坐标:', x, y);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return Promise.resolve();
+
+      const w = chart.getWidth();
+      const h = chart.getHeight();
+      let tx = clamp(x, 18, w - 18);
+      let ty = clamp(y, 18, h - 80);
+      let sy = clamp(ty + 90, 18, h - 18);
+
+      const rocketId = `fw_rocket_${mySeq}`;
+      const trailId = `fw_trail_${mySeq}`;
+      const blessId = `fw_bless_${mySeq}`;
+      const particles = Array.from({ length: 14 }).map((_, i) => ({
+        id: `fw_p_${mySeq}_${i}`,
+        a: (Math.PI * 2 * i) / 14,
+        r: 52 + (i % 3) * 12
+      }));
+
+      chart.setOption(
+        {
+          graphic: [
+            {
+              id: groupId,
+              type: 'group',
+              silent: true,
+              zlevel: 50,
+              z: 5000,
+              x: 0,
+              y: 0,
+              children: [
+                {
+                  id: trailId,
+                  type: 'line',
+                  shape: { x1: tx, y1: sy, x2: tx, y2: ty },
+                  style: { stroke: 'rgba(255,183,77,0.55)', lineWidth: 2 },
+                  z: 999
+                },
+                {
+                  id: rocketId,
+                  type: 'circle',
+                  shape: { cx: tx, cy: sy, r: 4 },
+                  style: { fill: '#ffb74d', shadowBlur: 8, shadowColor: 'rgba(255,183,77,0.55)' },
+                  z: 1000
+                },
+                ...particles.map(p => ({
+                  id: p.id,
+                  type: 'circle',
+                  invisible: true,
+                  shape: { cx: tx, cy: ty, r: 3 },
+                  style: { fill: '#ffb74d', opacity: 0 },
+                  z: 1000
+                })),
+                {
+                  id: blessId,
+                  type: 'text',
+                  invisible: false,
+                  left: tx,
+                  top: ty - 34,
+                  style: {
+                    text: String(blessingText),
+                    fill: '#ffb74d',
+                    font: '800 50px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+                    textAlign: 'center',
+                    textVerticalAlign: 'middle',
+                    stroke: 'rgba(0,0,0,0.55)',
+                    lineWidth: 4,
+                    opacity: 0
+                  },
+                  z: 1001
+                }
+              ]
+            }
+          ]
+        },
+        { notMerge: false, lazyUpdate: false, silent: true }
+      );
+
+      const t0 = performance.now();
+      const riseMs = 820;
+      const boomMs = 760;
+      const blessMs = 1580;
+      const totalMs = riseMs + boomMs + blessMs;
+      return new Promise(resolve => {
+        function step(now) {
+          if (mySeq !== fireworkSeq) {
+            resolve();
+            return;
+          }
+          // 每帧重算锚点像素：保证烟花爆点永远贴合地图位置
+          const apx = chart.convertToPixel({ geoIndex: gi }, c);
+          if (Array.isArray(apx) && apx.length === 2) {
+            const ax = Number(apx[0]);
+            const ay = Number(apx[1]);
+
+            if (Number.isFinite(ax) && Number.isFinite(ay)) {
+              const ww = chart.getWidth();
+              const hh = chart.getHeight();
+
+              tx = clamp(ax, 18, ww - 18);
+              sy = clamp(ay, 18, hh - 80);
+              ty = clamp(sy - 190, 18, hh - 18);
+            }
+          }
+          else{
+            console.error('❌ convertToPixel 失败！返回:', apx);
+          }
+
+          const dt = now - t0;
+          if (dt <= riseMs) {
+            const k = easeInOutCubic(dt / riseMs);
+            const cy = sy + (ty - sy) * k;
+            chart.setOption(
+              {
+                graphic: [
+                  {
+                    id: groupId,
+                    children: [
+                      {
+                        id: trailId,
+                        type: 'line',
+                        invisible: false,
+                        style: { stroke: 'rgba(255,183,77,0.55)', lineWidth: 3 },
+                        shape: { x1: tx, y1: sy, x2: tx, y2: cy }
+                      },
+                      {
+                        id: rocketId,
+                        type: 'circle',
+                        invisible: false,
+                        shape: { cx: tx, cy: cy, r: 9 - 3 * k}
+                      },
+                      ...particles.map(p => ({ id: p.id,type: 'circle', invisible: true })),
+                      { id: blessId, invisible: true }
+                    ]
+                  }
+                ]
+              },
+              { notMerge: false, lazyUpdate: false, silent: true }
+            );
+          } else if (dt <= riseMs + boomMs) {
+            const t = (dt - riseMs) / boomMs;
+            const k = easeInOutCubic(t);
+            const alpha = clamp(1 - k, 0, 1);
+            chart.setOption(
+              {
+                graphic: [
+                  {
+                    id: groupId,
+                    children: [
+                      { id: rocketId, invisible: true },
+                      { id: trailId, invisible: true },
+                      ...particles.map(p => ({
+                        id: p.id,
+                        invisible: false,
+                        shape: {
+                          cx: tx + Math.cos(p.a) * p.r * k,
+                          cy: ty + Math.sin(p.a) * p.r * k,
+                          r: 3.2
+                        },
+                        style: { opacity: alpha }
+                      })),
+                      { id: blessId, invisible: true }
+                    ]
+                  }
+                ]
+              },
+              { notMerge: false, lazyUpdate: false, silent: true }
+            );
+          } else {
+            const t = clamp((dt - riseMs - boomMs) / blessMs, 0, 1);
+            const k = easeInOutCubic(t);
+            const opacity = t < 0.65 ? k : (1 - (t - 0.65) / 0.35);
+            chart.setOption(
+              {
+                graphic: [
+                  {
+                    id: groupId,
+                    children: [
+                      { id: rocketId, invisible: true },
+                      { id: trailId, invisible: true },
+                      ...particles.map(p => ({ id: p.id, invisible: true })),
+                      {
+                        id: blessId,
+                        invisible: false,
+                        left: tx-70,
+                        top: ty - 34,
+                        style: { 
+                          opacity: clamp(opacity, 0, 1),
+                          text: String(blessingText),
+                          fill: '#ffb74d',
+                          font: '800 35px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+                          textAlign: 'center',
+                          textVerticalAlign: 'middle',
+                          stroke: 'rgba(0,0,0,0.55)',
+                          lineWidth: 4
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              { notMerge: false, lazyUpdate: false, silent: true }
+            );
+          }
+
+          if (dt < totalMs) {
+            requestAnimationFrame(step);
+          } else {
+            fireworkTimer = setTimeout(() => {
+              if (mySeq === fireworkSeq && currentFireworkGroupId === groupId) {
+                clearFirework();
+              }
+              resolve();
+            }, 0);
+          }
+        }
+        requestAnimationFrame(step);
+      });
+    }
+
     function enqueueAutoFocus(matched, cascadeIds) {
       if (!matched) return;
       autoFocusQueue.push({ matched, cascadeIds, receivedAt: Date.now() });
@@ -688,12 +1246,13 @@
 
     async function processAutoFocusQueue() {
       if (autoFocusProcessing) return;
-      if (!chart || !chartReady) return;
+      if (!isChartUsable()) return;
       autoFocusProcessing = true;
       try {
         while (autoFocusQueue.length > 0) {
           const item = autoFocusQueue.shift();
           try {
+            if (!isChartUsable()) break;
             await autoFocusToMatched(item.matched, item.cascadeIds);
           } catch (e) {
             console.error('自动聚焦执行失败:', e);
@@ -752,6 +1311,22 @@
       return 'district';
     }
 
+    function normalizeRegionIdByLevel(id, level) {
+      const s0 = String(id ?? '').trim();
+      if (!s0) return '';
+      // 兼容数字/字符串，避免前导 0 的干扰
+      const s = s0.replace(/^0+/, '') || '0';
+      if (/^\d{6}$/.test(s)) return s;
+      if (/^\d{2}$/.test(s)) return s + '0000';
+      if (/^\d{4}$/.test(s)) return s + '00';
+      if (/^\d{6,}$/.test(s)) return s.slice(0, 6);
+
+      const lvl = String(level || '').trim();
+      if (lvl === 'province' && /^\d{2}$/.test(s0)) return s0 + '0000';
+      if (lvl === 'city' && /^\d{4}$/.test(s0)) return s0 + '00';
+      return s0;
+    }
+
     function provinceIdFromAny(id) {
       const s = String(id || '').trim();
       if (!isAdcode6(s)) return null;
@@ -777,6 +1352,10 @@
       if (autoReturnTimer) clearTimeout(autoReturnTimer);
       autoReturnTimer = null;
       autoReturnActive = false;
+
+      // 用户手动干预：撤掉引导效果，避免残留/错位
+      clearFocusLabel();
+      clearFirework();
     }
 
     function scheduleAutoReturnToNational() {
@@ -786,6 +1365,8 @@
       autoReturnTimer = setTimeout(async () => {
         if (autoReturnCancelledByUser) return;
         autoReturnActive = false;
+        clearFocusLabel();
+        clearFirework();
         await goToInitialView({ showToast: false });
       }, 3000);
     }
@@ -815,6 +1396,129 @@
       CITY_TO_DISTRICT: 4.0      // 市级 -> 区县级 的缩放阈值
     };
 
+    // 地图数据注册状态
+    let citiesAllRegistered = false;
+    let districtsAllRegistered = false;
+
+    // 更新统计信息
+    function updateStats(stats) {
+      if (!stats) return;
+      
+      document.getElementById('litCount').textContent = stats.litCount || 0;
+      document.getElementById('totalCount').textContent = stats.totalSubmissions || 0;
+      document.getElementById('clientCount').textContent = stats.clientsConnected || 0;
+      
+      // 更新点亮地区状态
+      if (stats.litRegions && Array.isArray(stats.litRegions)) {
+        litRegionState = {};
+        litRegionsMetaById = {};
+        
+        stats.litRegions.forEach(region => {
+          const rid = normalizeRegionIdByLevel(region.id, region.level);
+          litRegionState[rid] = {
+            count: region.count || 0,
+            firstLitAt: region.firstLitAt,
+            lastLitAt: region.lastLitAt,
+            firstNickname: region.firstNickname,
+            matchedName: region.name
+          };
+          litRegionsMetaById[rid] = {
+            name: region.name,
+            level: region.level,
+            centroid: region.centroid
+          };
+        });
+        
+        updateMap();
+      }
+    }
+
+    // 更新历史记录
+    function updateHistory(history) {
+      if (!Array.isArray(history)) return;
+      
+      historyItems = history;
+      const historyBox = document.getElementById('historyBox');
+      if (!historyBox) return;
+      
+      historyBox.innerHTML = history.map(item => {
+        if (!item) return '';
+        const matchedName = item.matched?.name || '未匹配';
+        return `
+          <div class="history-item">
+            <span class="name">${item.nickname}</span> 点亮了 <span class="place">${matchedName}</span>
+          </div>
+        `;
+      }).join('');
+      
+      // 滚动到底部
+      historyBox.scrollTop = historyBox.scrollHeight;
+    }
+
+    // 处理地区点亮事件
+    function handleRegionLit(data) {
+      if (!data || !data.regionId) return;
+      
+      // 更新统计信息
+      if (data.stats) {
+        updateStats(data.stats);
+      }
+      
+      // 更新历史记录
+      if (data.nickname && data.regionName) {
+        const newHistoryItem = {
+          nickname: data.nickname,
+          matched: { name: data.regionName }
+        };
+        historyItems.push(newHistoryItem);
+        if (historyItems.length > 20) {
+          historyItems = historyItems.slice(-20);
+        }
+        updateHistory(historyItems);
+      }
+      
+      // 自动聚焦到点亮的地区
+      if (data.matched) {
+        enqueueAutoFocus(data.matched, data.cascadeIds);
+      }
+    }
+
+    // 处理重置事件
+    function handleReset() {
+      // 重置地图状态
+      litRegionState = {};
+      litRegionsMetaById = {};
+      historyItems = [];
+      
+      // 更新UI
+      updateMap();
+      updateHistory([]);
+      updateStats({ litCount: 0, totalSubmissions: 0 });
+      
+      showToast('地图已重置', 'info');
+    }
+
+    // 处理提交事件
+    function handleSubmission(data) {
+      if (!data || !data.nickname) return;
+      
+      // 更新历史记录
+      const newHistoryItem = {
+        nickname: data.nickname,
+        matched: data.matched ? { name: data.matched.name } : null
+      };
+      historyItems.push(newHistoryItem);
+      if (historyItems.length > 20) {
+        historyItems = historyItems.slice(-20);
+      }
+      updateHistory(historyItems);
+      
+      // 更新统计信息
+      if (data.stats) {
+        updateStats(data.stats);
+      }
+    };
+
     // UI控制元素
     const ui = {
       loadingOverlay: document.getElementById('loadingOverlay'),
@@ -830,6 +1534,18 @@
     // 防抖控制器
     let debounceTimer = null;
     const DEBOUNCE_DELAY = 300; // 防抖延迟时间（毫秒）
+
+    // Toast提示功能
+    function showToast(message, duration = 2000) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.remove();
+      }, duration);
+    }
 
     // UI控制函数
     const UIController = {
@@ -961,7 +1677,10 @@
     }
 
     // 初始化 ECharts
-    let CHINA_BOUNDING_COORDS = null;
+
+    // overlay 同步节流：拖动时只在 rAF 执行一次 setOption，且不做任何更新动画
+    let pendingOverlaySync = false;
+    let lastOverlayView = null;
 
     function computeBoundingCoords(geojson) {
       const features = Array.isArray(geojson?.features) ? geojson.features : [];
@@ -1001,6 +1720,19 @@
     }
 
     function getBaseGeoView() {
+      // 优先读取“实时坐标系”状态，避免 getOption 拿到旧 center/zoom 导致 overlay 错位
+      try {
+        const model = chart?.getModel ? chart.getModel() : null;
+        const geoComp = model?.getComponent ? model.getComponent('geo', 0) : null;
+        const cs = geoComp?.coordinateSystem;
+        const c = cs?.getCenter ? cs.getCenter() : null;
+        const z = cs?.getZoom ? cs.getZoom() : null;
+        if (Array.isArray(c) && c.length === 2 && Number.isFinite(Number(c[0])) && Number.isFinite(Number(c[1])) && Number.isFinite(Number(z))) {
+          return { center: [Number(c[0]), Number(c[1])], zoom: Number(z) };
+        }
+      } catch {
+        // ignore
+      }
       const opt = chart?.getOption ? chart.getOption() : null;
       const baseGeo = Array.isArray(opt?.geo) ? opt.geo[0] : opt?.geo;
       return {
@@ -1009,34 +1741,66 @@
       };
     }
 
-    function syncOverlayGeoView() {
+    function syncOverlayGeoView(params) {
       if (!chart) return;
-      const { center, zoom } = getBaseGeoView();
-      chart.setOption(
-        {
-          geo: [
-            {},
-            { center, zoom },
-            { center, zoom }
-          ]
-        },
-        { notMerge: false }
-      );
+
+      // 获取当前触发事件的 geo 组件的视图
+      const currentGeo = chart.getModel().getComponent('geo', params?.componentIndex);
+      if (!currentGeo) return;
+      
+      // 获取当前视图中心和缩放级别
+      const center = currentGeo.get('center');
+      const zoom = currentGeo.get('zoom');
+      
+      if (!Array.isArray(center) || !Number.isFinite(zoom)) return;
+      
+      lastOverlayView = { center: center.slice(), zoom: Number(zoom) };
+      if (pendingOverlaySync) return;
+      pendingOverlaySync = true;
+      
+      requestAnimationFrame(() => {
+        pendingOverlaySync = false;
+        if (!chart || !lastOverlayView) return;
+        chart.setOption(
+          {
+            // 关键：禁止 update 动画，否则会出现“顿一下再平滑跟随”的错觉
+            animation: false,
+            animationDurationUpdate: 0,
+            animationEasingUpdate: 'linear',
+            geo: [
+              // 基础 geo 组件，同步当前视图
+              { center: lastOverlayView.center, zoom: lastOverlayView.zoom },
+              // 城市覆盖层，同步当前视图
+              { center: lastOverlayView.center, zoom: lastOverlayView.zoom },
+              // 区县覆盖层，同步当前视图
+              { center: lastOverlayView.center, zoom: lastOverlayView.zoom }
+            ]
+          },
+          { notMerge: false, lazyUpdate: true, silent: true }
+        );
+      });
     }
 
     function clamp(n, min, max) {
+      /*限制数值在 min 和 max 之间*/
       return Math.max(min, Math.min(max, n));
     }
 
     function easeInOutCubic(t) {
+      /*缓动函数：easeInOutCubic*/
       const x = clamp(t, 0, 1);
       return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
     }
+
+    // 取消在途视图动画：避免并发动画导致边界/视图错位
+    let geoAnimSeq = 0;
 
     function animateGeoViewTo(targetCenter, targetZoom, durationMs = 700) {
       if (!chart || !chartReady) return Promise.resolve();
       if (!Array.isArray(targetCenter) || targetCenter.length !== 2) return Promise.resolve();
       if (!Number.isFinite(targetCenter[0]) || !Number.isFinite(targetCenter[1])) return Promise.resolve();
+
+      const myAnim = ++geoAnimSeq;
 
       const start = performance.now();
       const base = getBaseGeoView();
@@ -1059,6 +1823,10 @@
 
       return new Promise((resolve) => {
         function step(now) {
+          if (myAnim !== geoAnimSeq) {
+            resolve();
+            return;
+          }
           const t = (now - start) / durationMs;
           const k = easeInOutCubic(t);
           const center = [
@@ -1076,6 +1844,9 @@
             },
             { notMerge: false, lazyUpdate: true, silent: true }
           );
+
+          // 若此时有“引导文字”，确保动画帧内也同步位置
+          updateFocusLabelPosition();
           if (t < 1) {
             requestAnimationFrame(step);
           } else {
@@ -1112,6 +1883,16 @@
       computeBBoxFromCoords(geom.coordinates, bbox);
       if (!Number.isFinite(bbox.minLon) || !Number.isFinite(bbox.maxLon) || !Number.isFinite(bbox.minLat) || !Number.isFinite(bbox.maxLat)) return null;
       return bbox;
+    }
+
+    function featureCenterFromGeometry(feature) {
+      const bb = featureLonLatBBox(feature);
+      if (!bb) return null;
+      const lon = (bb.minLon + bb.maxLon) / 2;
+      const lat = (bb.minLat + bb.maxLat) / 2;
+      const c = normalizeLonLat([lon, lat]);
+      if (c && isLonLatInChina(c)) return c;
+      return null;
     }
 
     function computeProvinceTargetZoom(provinceFeature) {
@@ -1176,8 +1957,17 @@
     // 初始化地图
     async function initChart() {
       const container = document.getElementById('map');
+      if (!container) {
+        console.error('❌ initChart: 找不到 #map 容器');
+        UIController.showError('初始化失败', '页面缺少地图容器（#map）');
+        return;
+      }
       if (chart) {
-        chart.dispose();
+        try {
+          chart.dispose();
+        } catch (e) {
+          console.warn('chart.dispose() 失败（忽略）:', e);
+        }
       }
       chart = echarts.init(container);
       chartReady = false;
@@ -1203,6 +1993,10 @@
         CHINA_BOUNDING_COORDS = computeBoundingCoords(chinaGeoJson);
 
         const option = {
+          // 禁用 ECharts 内置动画（否则 setOption 更新会产生“平滑跟随/惯性”的感觉）
+          animation: false,
+          animationDurationUpdate: 0,
+          animationEasingUpdate: 'linear',
           backgroundColor: 'transparent',
           geo: [
             {
@@ -1247,7 +2041,7 @@
               show: false,
               map: 'china',
               roam: false,
-              silent: false,
+              silent: true,
               boundingCoords: CHINA_BOUNDING_COORDS || undefined,
               label: { show: false },
               itemStyle: {
@@ -1270,7 +2064,7 @@
               show: false,
               map: 'china',
               roam: false,
-              silent: false,
+              silent: true,
               boundingCoords: CHINA_BOUNDING_COORDS || undefined,
               label: { show: false },
               itemStyle: {
@@ -1311,9 +2105,12 @@
         chart.getZr().on('click', handleMapClick);
 
         // 拖动/缩放时，让叠加层跟随 base geo
-        chart.on('georoam', () => {
-          syncOverlayGeoView();
-          cancelAutoReturnByUser();
+        chart.on('georoam', (params) => {
+          // 用户手动拖动/缩放：立即取消在途的自动缩放，避免“抢控制权/错位”
+          geoAnimSeq++;
+          syncOverlayGeoView(params);
+          updateFocusLabelPosition();
+          // cancelAutoReturnByUser();
         });
 
         window.addEventListener('resize', () => {
@@ -1346,7 +2143,7 @@
       }
     }
 
-    function setCityBordersMap(provinceCode, geojson) {
+    function setCityBordersMap(provinceCode, geojson, viewOverride = null) {
       const mapName = `cities_${provinceCode}`;
       echarts.registerMap(mapName, geojson);
       cityFeatureNameById = buildFeatureNameById(geojson);
@@ -1359,26 +2156,33 @@
       }
       districtFeatureNameById = new Map();
       districtFeatureById = new Map();
-      const { center, zoom } = getBaseGeoView();
+      const base = getBaseGeoView();
+      const view = (viewOverride && Array.isArray(viewOverride.center) && Number.isFinite(viewOverride.zoom))
+        ? viewOverride
+        : (Array.isArray(base.center) && Number.isFinite(base.zoom))
+          ? base
+          : { center: INITIAL_VIEW.center, zoom: INITIAL_VIEW.zoom };
       chart.setOption(
         {
           geo: [
-            // base geo：允许 hover 省名（用于在市级边界显示时，仍能悬浮其他省看到名字）
-            { silent: false, emphasis: { label: { show: true } } },
+            // base geo：处理所有拖动缩放事件
+            { silent: false, roam: true, emphasis: { label: { show: true } } },
             {
               show: true,
               map: mapName,
-              silent: false,
-              center,
-              zoom,
+              roam: false, // 不处理拖动缩放，只响应悬停事件
+              silent: false, // 允许悬停事件
+              center: view.center,
+              zoom: view.zoom,
               boundingCoords: CHINA_BOUNDING_COORDS || undefined
             },
             {
               show: false,
               map: 'china',
-              silent: false,
-              center,
-              zoom,
+              roam: false,
+              silent: true,
+              center: view.center,
+              zoom: view.zoom,
               boundingCoords: CHINA_BOUNDING_COORDS || undefined
             }
           ]
@@ -1387,7 +2191,7 @@
       );
     }
 
-    function setDistrictBordersMap(cityCode, geojson) {
+    function setDistrictBordersMap(cityCode, geojson, viewOverride = null) {
       const mapName = `districts_${cityCode}`;
       echarts.registerMap(mapName, geojson);
       districtFeatureNameById = buildFeatureNameById(geojson);
@@ -1398,20 +2202,26 @@
         if (!id) continue;
         if (!districtFeatureById.has(String(id))) districtFeatureById.set(String(id), f);
       }
-      const { center, zoom } = getBaseGeoView();
+      const base = getBaseGeoView();
+      const view = (viewOverride && Array.isArray(viewOverride.center) && Number.isFinite(viewOverride.zoom))
+        ? viewOverride
+        : (Array.isArray(base.center) && Number.isFinite(base.zoom))
+          ? base
+          : { center: INITIAL_VIEW.center, zoom: INITIAL_VIEW.zoom };
       chart.setOption(
         {
           geo: [
-            // base geo：允许 hover 省名（用于区县边界显示时，仍能悬浮其他省看到名字）
-            { silent: false, emphasis: { label: { show: true } } },
-            // 市级 overlay：需要能 hover 其它市（否则会出现“省级高亮错层”的怪异效果）
-            { silent: false },
+            // base geo：处理所有拖动缩放事件
+            { silent: false, roam: true, emphasis: { label: { show: true } } },
+            // 市级 overlay：允许 hover 其它市，不处理拖动缩放
+            { show: true, roam: false, silent: false },
             {
               show: true,
               map: mapName,
-              silent: false,
-              center,
-              zoom,
+              roam: false, // 不处理拖动缩放，只响应悬停事件
+              silent: false, // 允许悬停事件
+              center: view.center,
+              zoom: view.zoom,
               boundingCoords: CHINA_BOUNDING_COORDS || undefined
             }
           ]
@@ -1436,8 +2246,8 @@
         {
           geo: [
             { silent: false, emphasis: { label: { show: true } } },
-            { show: false, map: 'china', silent: false },
-            { show: false, map: 'china', silent: false }
+            { show: false, map: 'china', roam: false, silent: true },
+            { show: false, map: 'china', roam: false, silent: true }
           ]
         },
         { notMerge: false }
@@ -1517,6 +2327,9 @@
       if (!chart || !chartReady) return;
       cancelAutoReturn();
 
+      // 渐显：让回到全国/重新上色更流畅
+      playMapFadeIn(750, 0.400);
+
       // 不重建图表：先收起边界，再动画回全国
       drillSeq++;
       selectedProvince = null;
@@ -1530,7 +2343,7 @@
       districtFeatureById = new Map();
 
       // 先启动动画（更短），让响应更快
-      const anim = animateGeoViewTo(INITIAL_VIEW.center, INITIAL_VIEW.zoom, 420);
+      const anim = animateGeoViewTo(INITIAL_VIEW.center, INITIAL_VIEW.zoom, 750);
 
       // 避免同步 setOption 阻塞点击后的第一帧：下一 tick 再收起边界/补上色
       setTimeout(() => {
@@ -1605,7 +2418,7 @@
       selectedCitiesGeoJson = geojson;
       const cnt = Array.isArray(geojson?.features) ? geojson.features.length : 0;
       if (!cnt) return;
-      setCityBordersMap(id, geojson);
+      setCityBordersMap(id, geojson, (pCenter && Number.isFinite(pZoom)) ? { center: pCenter, zoom: pZoom } : null);
       updateMap();
     }
 
@@ -1658,7 +2471,7 @@
       const [geojson] = await Promise.all([fetchPromise, animPromise]);
       if (mySeq !== drillSeq) return;
 
-      setDistrictBordersMap(id, geojson);
+      setDistrictBordersMap(id, geojson, (cCenter && Number.isFinite(cZoom)) ? { center: cCenter, zoom: cZoom } : null);
       updateMap();
     }
 
@@ -1679,18 +2492,23 @@
 
     async function autoFocusToMatched(matched, cascadeIds) {
       if (!matched) return;
-      if (!chart || !chartReady) return;
+      if (!isChartUsable()) return;
 
       cancelAutoReturn();
       clearFocusLabel();
-      const id = String(matched.id || '');
-      const lvl = matched.level || inferLevelFromAdcode(id);
+      // 渐显：点亮触发自动聚焦时更柔和
+      // playMapFadeIn(420, 0.26);
+      const rawId = String(matched.id || '').trim();
+      const rawLvl = matched.level || inferLevelFromAdcode(rawId);
+      const id = normalizeRegionIdByLevel(rawId, rawLvl);
+      const lvl = rawLvl || inferLevelFromAdcode(id);
       if (!id || !lvl) return;
 
       // 自动聚焦开始：不希望之后的旧异步流程覆盖当前视图
       drillSeq++;
 
       if (lvl === 'province') {
+        if (!isChartUsable()) return;
         // 省：只聚焦省，不显示市级边界
         selectedProvince = null;
         selectedCity = null;
@@ -1701,29 +2519,39 @@
         cityFeatureById = new Map();
         districtFeatureNameById = new Map();
         districtFeatureById = new Map();
-
+        console.log("设置前");
         chart.setOption(
           {
             geo: [
-              { silent: false, emphasis: { label: { show: true } } },
+              { map: 'china', silent: false, emphasis: { label: { show: true } } },
               { show: false, map: 'china', silent: false },
               { show: false, map: 'china', silent: false }
             ]
           },
-          { notMerge: false }
+          { notMerge: false, lazyUpdate: false, silent: true }
         );
         updateMap();
-
         await ensureProvinceHitGeoLoaded();
+        if (!isChartUsable()) return;
         const pFeature = provinceFeatureById.get(id) || null;
-        const pCenter = pickFeatureCoord(pFeature);
+        const pCenter = featureCenterFromGeometry(pFeature) || pickFeatureCoord(pFeature) || pickMatchedCoord(matched);
         const pZoom = computeProvinceTargetZoom(pFeature);
         if (pCenter && Number.isFinite(pZoom)) {
           await animateGeoViewTo(pCenter, pZoom, 680);
         }
+        if (!isChartUsable()) return;
         updateMap();
-        if (pCenter) showFocusLabel(String(matched.name || ''), pCenter, 1000);
-        scheduleAutoReturnToNational();
+        if (pCenter) {
+          const a = resolveAnchorForLevel('province', id, pCenter);
+          const anchorCoord = a?.coord || pCenter;
+          const anchorGi = Number.isFinite(Number(a?.geoIndex)) ? Number(a.geoIndex) : 0;
+          showFocusLabel(String(matched.name || ''), anchorCoord, 1000);
+          await delay(1050);
+          clearFocusLabel();
+          scheduleAutoReturnToNational();
+          await playFireworkAt(anchorCoord, '马年吉祥', anchorGi);
+        }
+        if (!pCenter) scheduleAutoReturnToNational();
         return;
       }
 
@@ -1734,7 +2562,7 @@
       // 第一步：省级提示 + 等待（让两段动画间隔拉长）
       const pName = provinceFeatureNameById.get(pId) || litRegionsMetaById[pId]?.name || '';
       const pFeature = provinceFeatureById.get(pId) || null;
-      const pCoord = pickFeatureCoord(pFeature);
+      const pCoord = featureCenterFromGeometry(pFeature) || pickFeatureCoord(pFeature);
       if (pCoord && pName) {
         showFocusLabel(pName, pCoord, 1000);
         await delay(1000);
@@ -1749,10 +2577,20 @@
 
         // 第二步：市级提示 + 等待
         const cFeature = cityFeatureById.get(id) || null;
-        const cCoord = pickFeatureCoord(cFeature);
+        const cCoord = featureCenterFromGeometry(cFeature) || pickFeatureCoord(cFeature) || pickMatchedCoord(matched);
         const cName = cityFeatureNameById.get(id) || litRegionsMetaById[id]?.name || matched.name || '';
-        if (cCoord && cName) showFocusLabel(cName, cCoord, 1000);
-        scheduleAutoReturnToNational();
+        if (cCoord && cName) {
+          const a = resolveAnchorForLevel('city', id, cCoord);
+          const anchorCoord = a?.coord || cCoord;
+          const anchorGi = Number.isFinite(Number(a?.geoIndex)) ? Number(a.geoIndex) : 1;
+          showFocusLabel(cName, anchorCoord, 1000);
+          await delay(1050);
+          clearFocusLabel();
+          scheduleAutoReturnToNational();
+          await playFireworkAt(anchorCoord, '马年吉祥', anchorGi);
+          await delay(1050);
+        }
+        if (!(cCoord && cName)) scheduleAutoReturnToNational();
         return;
       }
 
@@ -1762,7 +2600,7 @@
 
       // 第二步：市级提示 + 等待
       const cFeature = cityFeatureById.get(cId) || null;
-      const cCoord = pickFeatureCoord(cFeature);
+      const cCoord = featureCenterFromGeometry(cFeature) || pickFeatureCoord(cFeature);
       const cName = cityFeatureNameById.get(cId) || litRegionsMetaById[cId]?.name || '';
       if (cCoord && cName) {
         showFocusLabel(cName, cCoord, 1000);
@@ -1775,12 +2613,19 @@
 
       // 第三步：区县提示
       const dFeature = districtFeatureById.get(id) || null;
-      const dCoord = pickFeatureCoord(dFeature);
+      const dCoord = featureCenterFromGeometry(dFeature) || pickFeatureCoord(dFeature) || pickMatchedCoord(matched);
       const dName = districtFeatureNameById.get(id) || litRegionsMetaById[id]?.name || matched.name || '';
       if (dCoord && dName) {
-        showFocusLabel(dName, dCoord, 1000);
+        const a = resolveAnchorForLevel('district', id, dCoord);
+        const anchorCoord = a?.coord || dCoord;
+        const anchorGi = Number.isFinite(Number(a?.geoIndex)) ? Number(a.geoIndex) : 2;
+        showFocusLabel(dName, anchorCoord, 1000);
+        await delay(1050);
+        clearFocusLabel();
+        scheduleAutoReturnToNational();
+        await playFireworkAt(anchorCoord, '马年吉祥', anchorGi);
       }
-      scheduleAutoReturnToNational();
+      if (!(dCoord && dName)) scheduleAutoReturnToNational();
     }
 
     async function selectProvinceByCoord(coord) {
@@ -1862,7 +2707,11 @@
         UIController.showError('无市级边界数据', `${selectedProvince.name} 的市级边界数据为空（可能数据文件缺失/损坏）。`);
         return;
       }
-      setCityBordersMap(selectedProvince.code, selectedCitiesGeoJson);
+      setCityBordersMap(
+        selectedProvince.code,
+        selectedCitiesGeoJson,
+        (pCenter && Number.isFinite(targetZoom)) ? { center: pCenter, zoom: targetZoom } : null
+      );
       updateMap();
       return true;
     }
@@ -1971,7 +2820,11 @@
 
       if (mySeq !== drillSeq) return true;
 
-      setDistrictBordersMap(selectedCity.code, districtsGeo);
+      setDistrictBordersMap(
+        selectedCity.code,
+        districtsGeo,
+        (cCenter && Number.isFinite(cityTargetZoom)) ? { center: cCenter, zoom: cityTargetZoom } : null
+      );
       updateMap();
       return true;
     }
@@ -2022,46 +2875,7 @@
       }
     }
 
-    // 处理地图缩放和平移事件
-    function handleMapRoam(params) {
-      if (!chart) return;
-
-      // 清除之前的防抖定时器
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
-      }
-
-      // 设置防抖定时器
-      debounceTimer = setTimeout(async () => {
-        const option = chart.getOption();
-        const geo = option.geo[0];
-        const currentZoom = geo.zoom || 1;
-        const currentCenter = geo.center || [116.97, 35.71];
-
-        console.log(`🔍 当前缩放级别: ${currentZoom.toFixed(2)}, 中心: [${currentCenter[0].toFixed(2)}, ${currentCenter[1].toFixed(2)}]`);
-
-        // 同步叠加层跟随主 geo 的 zoom/center
-        syncOverlayGeos(currentZoom, currentCenter);
-
-        // 根据缩放级别更新地图层级显示
-        await updateMapLayers(currentZoom, currentCenter);
-      }, DEBOUNCE_DELAY);
-    }
-
-    function syncOverlayGeos(zoom, center) {
-      if (!chart) return;
-      chart.setOption(
-        {
-          geo: [
-            {},
-            { zoom, center },
-            { zoom, center }
-          ]
-        },
-        { notMerge: false }
-      );
-    }
-
+    // 确保所有城市数据已注册
     async function ensureAllCitiesRegistered() {
       if (citiesAllRegistered) return;
       UIController.showLoading('加载地图数据', '正在加载全国市级边界...');
@@ -2429,6 +3243,103 @@
       return { code, name };
     }
 
+    // 更新统计数据
+    function updateStats(stats) {
+      document.getElementById('litCount').textContent = stats.litCount || 0;
+      document.getElementById('totalCount').textContent = stats.totalSubmissions || 0;
+      document.getElementById('clientCount').textContent = stats.clientsConnected || 0;
+    }
+
+    // 更新历史记录
+    function updateHistory(history) {
+      const historyBox = document.getElementById('historyBox');
+      historyItems = history;
+      
+      // 清空现有内容
+      historyBox.innerHTML = '';
+      
+      // 添加新的历史记录
+      historyItems.forEach(item => {
+        const historyItem = document.createElement('div');
+        historyItem.className = 'history-item';
+        const matchedName = item.matched?.name || '未匹配';
+        historyItem.innerHTML = `<span class="name">${item.nickname}</span> 点亮了 <span class="place">${matchedName}</span>`;
+        historyBox.appendChild(historyItem);
+      });
+      
+      // 滚动到底部
+      historyBox.scrollTop = historyBox.scrollHeight;
+    }
+
+    // 处理地区点亮事件
+    function handleRegionLit(data) {
+      // 更新点亮状态
+      if (data.regionId && data.regionName) {
+        litRegionState[data.regionId] = {
+          count: data.stats?.litRegions?.find(r => r.id === data.regionId)?.count || 1
+        };
+        
+        // 更新地图显示
+        updateMap();
+        
+        // 自动聚焦到点亮的地区
+        enqueueAutoFocus(data.matched, data.cascadeIds);
+      }
+      
+      // 更新统计数据
+      if (data.stats) {
+        updateStats(data.stats);
+      }
+      
+      // 更新历史记录
+      const newHistoryItem = {
+        nickname: data.nickname,
+        matched: { name: data.regionName, id: data.regionId },
+        createdAt: data.timestamp
+      };
+      historyItems.push(newHistoryItem);
+      if (historyItems.length > 50) {
+        historyItems.shift();
+      }
+      updateHistory(historyItems);
+    }
+
+    // 处理重置事件
+    function handleReset() {
+      // 重置点亮状态
+      litRegionState = {};
+      litRegionsMetaById = {};
+      historyItems = [];
+      
+      // 更新地图和历史记录
+      updateMap();
+      updateHistory(historyItems);
+      updateStats({ litCount: 0, totalSubmissions: 0, clientsConnected: 0 });
+      
+      // 重置视图
+      initializeMapView();
+    }
+
+    // 处理提交事件
+    function handleSubmission(data) {
+      // 更新历史记录
+      const newHistoryItem = {
+        nickname: data.nickname,
+        matched: data.matched,
+        createdAt: data.createdAt
+      };
+      historyItems.push(newHistoryItem);
+      if (historyItems.length > 50) {
+        historyItems.shift();
+      }
+      updateHistory(historyItems);
+      
+      // 更新统计数据
+      if (data.stats) {
+        updateStats(data.stats);
+      }
+    }
+
     // 更新地图（颜色填充 + 右侧列表）
     function updateMap() {
       if (!chart || !chartReady) {
@@ -2502,13 +3413,15 @@
         // 构建 meta 映射
         litRegionsMetaById = {};
         for (const r of (stats.litRegions || [])) {
-          litRegionsMetaById[String(r.id)] = { name: r.name, centroid: r.centroid, level: r.level, count: Number(r.count || 0) };
+          const rid = normalizeRegionIdByLevel(r.id, r.level);
+          litRegionsMetaById[String(rid)] = { name: r.name, centroid: r.centroid, level: r.level, count: Number(r.count || 0) };
         }
 
         // 点亮状态：按次数
         litRegionState = {};
         for (const r of (stats.litRegions || [])) {
-          litRegionState[String(r.id)] = {
+          const rid = normalizeRegionIdByLevel(r.id, r.level);
+          litRegionState[String(rid)] = {
             count: Number(r.count || 0),
             firstNickname: r.firstNickname || null,
             matchedName: r.name,
@@ -2533,8 +3446,9 @@
           litRegionsMetaById = {};
           litRegionState = {};
           for (const r of stats.litRegions) {
-            litRegionsMetaById[String(r.id)] = { name: r.name, centroid: r.centroid, level: r.level, count: Number(r.count || 0) };
-            litRegionState[String(r.id)] = {
+            const rid = normalizeRegionIdByLevel(r.id, r.level);
+            litRegionsMetaById[String(rid)] = { name: r.name, centroid: r.centroid, level: r.level, count: Number(r.count || 0) };
+            litRegionState[String(rid)] = {
               count: Number(r.count || 0),
               firstNickname: r.firstNickname || null,
               matchedName: r.name,
