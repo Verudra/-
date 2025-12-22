@@ -731,21 +731,44 @@
       /*
       从匹配结果中提取经纬度坐标
       */
+      // 1. 优先使用matched对象自带的centroid，这是最可靠的来源
+      if (matched?.centroid && Array.isArray(matched.centroid) && matched.centroid.length === 2) {
+        const x = Number(matched.centroid[0]);
+        const y = Number(matched.centroid[1]);
+        if (Number.isFinite(x) && Number.isFinite(y)) {
+          return normalizeLonLat([x, y]);
+        }
+      }
+      
+      // 2. 如果没有，尝试从litRegionsMetaById中获取
       const rawId = String(matched?.id || '').trim();
       const lvl = matched?.level || inferLevelFromAdcode(rawId);
       const id = normalizeRegionIdByLevel(rawId, lvl);
-      let raw = matched?.centroid || litRegionsMetaById?.[id]?.centroid;
-
-      // 兼容 meta 使用短码（省2位、市4位）存储的情况
-      if (!raw && /^\d{6}$/.test(id)) {
-        if (id.endsWith('0000')) raw = litRegionsMetaById?.[id.slice(0, 2)]?.centroid;
-        else if (id.endsWith('00')) raw = litRegionsMetaById?.[id.slice(0, 4)]?.centroid;
+      
+      if (litRegionsMetaById) {
+        // 尝试使用完整ID查找
+        let raw = litRegionsMetaById[id]?.centroid;
+        
+        // 兼容 meta 使用短码（省2位、市4位）存储的情况
+        if (!raw && /^\d{6}$/.test(id)) {
+          if (id.endsWith('0000')) raw = litRegionsMetaById[id.slice(0, 2)]?.centroid;
+          else if (id.endsWith('00')) raw = litRegionsMetaById[id.slice(0, 4)]?.centroid;
+        }
+        
+        // 尝试使用原始ID查找
+        if (!raw && rawId) {
+          raw = litRegionsMetaById[rawId]?.centroid;
+        }
+        
+        if (Array.isArray(raw) && raw.length === 2) {
+          const x = Number(raw[0]);
+          const y = Number(raw[1]);
+          if (Number.isFinite(x) && Number.isFinite(y)) {
+            return normalizeLonLat([x, y]);
+          }
+        }
       }
-      if (Array.isArray(raw) && raw.length === 2) {
-        const x = Number(raw[0]);
-        const y = Number(raw[1]);
-        if (Number.isFinite(x) && Number.isFinite(y)) return normalizeLonLat([x, y]);
-      }
+      
       return null;
     }
 
@@ -1000,15 +1023,13 @@
       });
     }
     
-    function playFireworkAt(coord, blessingText = '马年吉祥', geoIndex = 0) {
+    async function playFireworkAt(coord, blessingText = '马年吉祥', geoIndex = 0, regionName = '') {
       if (!chart || !chartReady) return Promise.resolve();
       if (!coord) return Promise.resolve();
-      clearFirework();
 
-      // 每次发射使用唯一 id，避免 ECharts graphic 复用/移除时的竞态与冲突
-      const mySeq = fireworkSeq;
-      const groupId = `firework_${mySeq}`;
-      currentFireworkGroupId = groupId;
+      // 每次发射使用唯一 id，基于时间戳和随机数，避免 ECharts graphic 复用/移除时的竞态与冲突
+      const uniqueId = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+      const groupId = `firework_${uniqueId}`;
 
       // 固定用 base geo 做像素换算，避免 overlay 坐标系/显示状态引入偏移
       const gi = geoIndex;
@@ -1030,11 +1051,12 @@
       let ty = clamp(y, 18, h - 80);
       let sy = clamp(ty + 90, 18, h - 18);
 
-      const rocketId = `fw_rocket_${mySeq}`;
-      const trailId = `fw_trail_${mySeq}`;
-      const blessId = `fw_bless_${mySeq}`;
+      const rocketId = `fw_rocket_${uniqueId}`;
+      const trailId = `fw_trail_${uniqueId}`;
+      const blessId = `fw_bless_${uniqueId}`;
+      const regionNameId = `fw_region_${uniqueId}`;
       const particles = Array.from({ length: 14 }).map((_, i) => ({
-        id: `fw_p_${mySeq}_${i}`,
+        id: `fw_p_${uniqueId}_${i}`,
         a: (Math.PI * 2 * i) / 14,
         r: 52 + (i % 3) * 12
       }));
@@ -1090,6 +1112,24 @@
                     opacity: 0
                   },
                   z: 1001
+                },
+                {
+                  id: regionNameId,
+                  type: 'text',
+                  invisible: false,
+                  left: tx,
+                  top: sy + 20,
+                  style: {
+                    text: String(regionName),
+                    fill: '#ffffff',
+                    font: '600 18px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+                    textAlign: 'center',
+                    textVerticalAlign: 'middle',
+                    stroke: 'rgba(0,0,0,0.7)',
+                    lineWidth: 2,
+                    opacity: 1
+                  },
+                  z: 1002
                 }
               ]
             }
@@ -1105,10 +1145,6 @@
       const totalMs = riseMs + boomMs + blessMs;
       return new Promise(resolve => {
         function step(now) {
-          if (mySeq !== fireworkSeq) {
-            resolve();
-            return;
-          }
           // 每帧重算锚点像素：保证烟花爆点永远贴合地图位置
           const apx = chart.convertToPixel({ geoIndex: gi }, c);
           if (Array.isArray(apx) && apx.length === 2) {
@@ -1152,7 +1188,24 @@
                         shape: { cx: tx, cy: cy, r: 9 - 3 * k}
                       },
                       ...particles.map(p => ({ id: p.id,type: 'circle', invisible: true })),
-                      { id: blessId, invisible: true }
+                      { id: blessId, invisible: true },
+                      { 
+                        id: regionNameId, 
+                        type: 'text',
+                        invisible: false,
+                        left: tx,
+                        top: sy + 20,
+                        style: {
+                          text: String(regionName),
+                          fill: '#ffffff',
+                          font: '600 18px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+                          textAlign: 'center',
+                          textVerticalAlign: 'middle',
+                          stroke: 'rgba(0,0,0,0.7)',
+                          lineWidth: 2,
+                          opacity: 1
+                        }
+                      }
                     ]
                   }
                 ]
@@ -1181,7 +1234,24 @@
                         },
                         style: { opacity: alpha }
                       })),
-                      { id: blessId, invisible: true }
+                      { id: blessId, invisible: true },
+                      { 
+                        id: regionNameId, 
+                        type: 'text',
+                        invisible: false,
+                        left: tx,
+                        top: sy + 20,
+                        style: {
+                          text: String(regionName),
+                          fill: '#ffffff',
+                          font: '600 18px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+                          textAlign: 'center',
+                          textVerticalAlign: 'middle',
+                          stroke: 'rgba(0,0,0,0.7)',
+                          lineWidth: 2,
+                          opacity: 1
+                        }
+                      }
                     ]
                   }
                 ]
@@ -1216,6 +1286,23 @@
                           stroke: 'rgba(0,0,0,0.55)',
                           lineWidth: 4
                         }
+                      },
+                      { 
+                        id: regionNameId, 
+                        type: 'text',
+                        invisible: true, // 在祝福文字阶段隐藏地区名称
+                        left: tx,
+                        top: sy + 20,
+                        style: {
+                          text: String(regionName),
+                          fill: '#ffffff',
+                          font: '600 18px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+                          textAlign: 'center',
+                          textVerticalAlign: 'middle',
+                          stroke: 'rgba(0,0,0,0.7)',
+                          lineWidth: 2,
+                          opacity: 0
+                        }
                       }
                     ]
                   }
@@ -1228,12 +1315,17 @@
           if (dt < totalMs) {
             requestAnimationFrame(step);
           } else {
-            fireworkTimer = setTimeout(() => {
-              if (mySeq === fireworkSeq && currentFireworkGroupId === groupId) {
-                clearFirework();
-              }
-              resolve();
-            }, 0);
+            // 只清除当前烟花组，不影响其他烟花
+            chart.setOption(
+              {
+                graphic: {
+                  id: groupId,
+                  remove: true
+                }
+              },
+              { notMerge: false, lazyUpdate: false, silent: true }
+            );
+            resolve();
           }
         }
         requestAnimationFrame(step);
@@ -1255,9 +1347,47 @@
           const item = autoFocusQueue.shift();
           try {
             if (!isChartUsable()) break;
-            await autoFocusToMatched(item.matched, item.cascadeIds);
+            
+            // 直接匹配地点，不执行地图聚焦
+            const matched = item.matched;
+            if (!matched) continue;
+            
+            // 获取地区坐标
+            const rawId = String(matched.id || '').trim();
+            const rawLvl = matched.level || inferLevelFromAdcode(rawId);
+            const id = normalizeRegionIdByLevel(rawId, rawLvl);
+            const lvl = rawLvl || inferLevelFromAdcode(id);
+            if (!id || !lvl) continue;
+            
+            // 查找坐标 - 优先使用pickMatchedCoord，它包含完整的服务器坐标信息
+            let coord = null;
+            
+            // 1. 优先使用pickMatchedCoord，它会检查matched对象和litRegionsMetaById
+            coord = pickMatchedCoord(matched);
+            
+            // 2. 如果没有，尝试从对应的feature Map中获取（仅适用于已加载的地图级别）
+            if (!coord) {
+              const stringId = String(id);
+              if (lvl === 'province') {
+                const pFeature = provinceFeatureById.get(stringId) || null;
+                coord = featureCenterFromGeometry(pFeature) || pickFeatureCoord(pFeature);
+              } else if (lvl === 'city') {
+                const cFeature = cityFeatureById.get(stringId) || null;
+                coord = featureCenterFromGeometry(cFeature) || pickFeatureCoord(cFeature);
+              } else if (lvl === 'district') {
+                const dFeature = districtFeatureById.get(stringId) || null;
+                coord = featureCenterFromGeometry(dFeature) || pickFeatureCoord(dFeature);
+              }
+            }
+            
+            // 在指定位置放烟花
+            if (coord) {
+              const geoIndex = geoIndexForLevel(lvl);
+              const regionName = matched.name || '';
+              playFireworkAt(coord, '马年吉祥', geoIndex, regionName);
+            }
           } catch (e) {
-            console.error('自动聚焦执行失败:', e);
+            console.error('自动放烟花执行失败:', e);
           }
           // 给下一条一点喘息，避免 UI 过于密集
           await delay(120);
@@ -1325,17 +1455,44 @@
     function normalizeRegionIdByLevel(id, level) {
       const s0 = String(id ?? '').trim();
       if (!s0) return '';
-      // 兼容数字/字符串，避免前导 0 的干扰
-      const s = s0.replace(/^0+/, '') || '0';
-      if (/^\d{6}$/.test(s)) return s;
-      if (/^\d{2}$/.test(s)) return s + '0000';
-      if (/^\d{4}$/.test(s)) return s + '00';
-      if (/^\d{6,}$/.test(s)) return s.slice(0, 6);
-
+      
+      // 确保返回6位格式，保留或补全前导0
       const lvl = String(level || '').trim();
-      if (lvl === 'province' && /^\d{2}$/.test(s0)) return s0 + '0000';
-      if (lvl === 'city' && /^\d{4}$/.test(s0)) return s0 + '00';
-      return s0;
+      
+      // 如果已经是6位数字，直接返回
+      if (/^\d{6}$/.test(s0)) {
+        return s0;
+      }
+      
+      // 移除前导0，准备补全
+      const s = s0.replace(/^0+/, '') || '0';
+      
+      // 根据级别补全0，确保6位格式
+      if (lvl === 'province') {
+        // 省份：2位数字 + 0000
+        return s.padStart(2, '0') + '0000';
+      } else if (lvl === 'city') {
+        // 城市：4位数字 + 00
+        return s.padStart(4, '0') + '00';
+      } else if (lvl === 'district') {
+        // 区县：6位数字
+        return s.padStart(6, '0');
+      } else {
+        // 根据长度自动补全
+        if (/^\d{2}$/.test(s)) {
+          // 2位 -> 省份格式
+          return s.padStart(2, '0') + '0000';
+        } else if (/^\d{4}$/.test(s)) {
+          // 4位 -> 城市格式
+          return s.padStart(4, '0') + '00';
+        } else if (/^\d{6,}$/.test(s)) {
+          // 超过6位 -> 取前6位
+          return s.slice(0, 6);
+        } else {
+          // 其他情况 -> 补全到6位
+          return s.padStart(6, '0');
+        }
+      }
     }
 
     function provinceIdFromAny(id) {
@@ -2275,6 +2432,79 @@
       updateMap();
     }
 
+    // 创建并显示涟漪发光点
+    function createRippleEffect(center, id) {
+      if (!chart || !chartReady) return;
+      
+      const rippleGroupId = `ripple_${id}`;
+      const rippleRadius = 30;
+      const rippleDuration = 2000;
+      
+      // 转换为像素坐标
+      const pixelCenter = chart.convertToPixel({ geoIndex: 0 }, center);
+      if (!pixelCenter || !Array.isArray(pixelCenter) || pixelCenter.length !== 2) return;
+      
+      // 创建涟漪效果的图形元素
+      const rippleElements = [
+        // 中心发光点
+        {
+          id: `${rippleGroupId}_center`,
+          type: 'circle',
+          shape: { cx: pixelCenter[0], cy: pixelCenter[1], r: 8 },
+          style: {
+            fill: 'rgba(255, 210, 0, 1)',
+            stroke: 'rgba(255, 255, 255, 0.8)',
+            lineWidth: 2,
+            shadowBlur: 20,
+            shadowColor: 'rgba(255, 210, 0, 0.8)'
+          },
+          z: 1000
+        },
+        // 外部涟漪
+        {
+          id: `${rippleGroupId}_ripple1`,
+          type: 'circle',
+          shape: { cx: pixelCenter[0], cy: pixelCenter[1], r: rippleRadius },
+          style: {
+            fill: 'transparent',
+            stroke: 'rgba(255, 210, 0, 0.6)',
+            lineWidth: 2,
+            shadowBlur: 15,
+            shadowColor: 'rgba(255, 210, 0, 0.6)'
+          },
+          z: 999
+        }
+      ];
+      
+      // 添加到图表
+      chart.setOption({
+        graphic: rippleElements
+      }, { notMerge: false, lazyUpdate: true, silent: true });
+      
+      // 动画效果
+      let startTime = performance.now();
+      function animate() {
+        const elapsed = performance.now() - startTime;
+        const progress = (elapsed % rippleDuration) / rippleDuration;
+        
+        chart.setOption({
+          graphic: [
+            {
+              id: `${rippleGroupId}_ripple1`,
+              shape: { r: rippleRadius * (0.3 + 0.7 * progress) },
+              style: {
+                opacity: 1 - progress,
+                lineWidth: 2 + 2 * (1 - progress)
+              }
+            }
+          ]
+        }, { notMerge: false, lazyUpdate: true, silent: true });
+        
+        requestAnimationFrame(animate);
+      }
+      animate();
+    }
+    
     function applyLayerColors() {
       if (!chart) return;
 
@@ -2339,16 +2569,76 @@
         }
       }
 
+      // 清空所有 regions，不再改变地区颜色
       chart.setOption(
         {
           geo: [
-            { regions: provinceRegions },
-            { regions: cityRegions },
-            { regions: districtRegions }
+            { regions: [] },
+            { regions: [] },
+            { regions: [] }
           ]
         },
         { notMerge: false, lazyUpdate: true, silent: true }
       );
+      
+      // 收集所有需要显示涟漪效果的省份中心坐标
+      const rippleData = [];
+      for (const [id, st] of Object.entries(litRegionState || {})) {
+        if (!isProvinceAdcode(id)) continue;
+        const cnt = Number(st?.count || 0);
+        if (!(cnt > 0)) continue;
+        
+        // 从litRegionsMetaById中获取中心坐标，这是更可靠的来源
+        const meta = litRegionsMetaById[String(id)];
+        if (meta && meta.centroid) {
+          rippleData.push({
+            name: id,
+            value: meta.centroid
+          });
+        } else {
+          // 从feature中获取中心坐标
+          const pFeature = provinceFeatureById.get(String(id));
+          if (pFeature) {
+            const center = featureCenterFromGeometry(pFeature);
+            if (center) {
+              rippleData.push({
+                name: id,
+                value: center
+              });
+            }
+          }
+        }
+      }
+      
+      // 如果有数据，显示涟漪效果
+      if (rippleData.length > 0) {
+        chart.setOption(
+          {
+            series: [
+              {
+                id: 'province_ripples',
+                type: 'effectScatter',
+                coordinateSystem: 'geo',
+                geoIndex: 0,
+                symbolSize: 20,
+                showEffectOn: 'render',
+                rippleEffect: {
+                  brushType: 'stroke',
+                  scale: 2.5,
+                  period: 1.5
+                },
+                itemStyle: {
+                  color: '#ffd200',
+                  shadowBlur: 10,
+                  shadowColor: '#ffd200'
+                },
+                data: rippleData
+              }
+            ]
+          },
+          { notMerge: false, lazyUpdate: true, silent: true }
+        );
+      }
     }
 
     async function goToInitialView({ showToast: shouldToast } = { showToast: true }) {
@@ -2577,7 +2867,8 @@
           await delay(1050);
           clearFocusLabel();
           scheduleAutoReturnToNational();
-          await playFireworkAt(anchorCoord, '马年吉祥', anchorGi);
+          const regionName1 = String(matched.name || '');
+          await playFireworkAt(anchorCoord, '马年吉祥', anchorGi, regionName1);
         }
         if (!pCenter) scheduleAutoReturnToNational();
         return;
@@ -2615,7 +2906,7 @@
           await delay(1050);
           clearFocusLabel();
           scheduleAutoReturnToNational();
-          await playFireworkAt(anchorCoord, '马年吉祥', anchorGi);
+          await playFireworkAt(anchorCoord, '马年吉祥', anchorGi, cName);
           await delay(1050);
         }
         if (!(cCoord && cName)) scheduleAutoReturnToNational();
@@ -2644,15 +2935,15 @@
       const dCoord = featureCenterFromGeometry(dFeature) || pickFeatureCoord(dFeature) || pickMatchedCoord(matched);
       const dName = districtFeatureNameById.get(id) || litRegionsMetaById[id]?.name || matched.name || '';
       if (dCoord && dName) {
-        const a = resolveAnchorForLevel('district', id, dCoord);
-        const anchorCoord = a?.coord || dCoord;
-        const anchorGi = Number.isFinite(Number(a?.geoIndex)) ? Number(a.geoIndex) : 2;
-        showFocusLabel(dName, anchorCoord, 1000);
-        await delay(1050);
-        clearFocusLabel();
-        scheduleAutoReturnToNational();
-        await playFireworkAt(anchorCoord, '马年吉祥', anchorGi);
-      }
+          const a = resolveAnchorForLevel('district', id, dCoord);
+          const anchorCoord = a?.coord || dCoord;
+          const anchorGi = Number.isFinite(Number(a?.geoIndex)) ? Number(a.geoIndex) : 2;
+          showFocusLabel(dName, anchorCoord, 1000);
+          await delay(1050);
+          clearFocusLabel();
+          scheduleAutoReturnToNational();
+          await playFireworkAt(anchorCoord, '马年吉祥', anchorGi, dName);
+        }
       if (!(dCoord && dName)) scheduleAutoReturnToNational();
     }
 
