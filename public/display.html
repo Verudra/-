@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>跨年互动地图 - 大屏展示</title>
+  <title>计算机学院互动地图</title>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
   <!-- 注意：ECharts 中国地图需要额外注册 map 数据（china.json），否则 map: 'china' 无法渲染 -->
   <style>
@@ -30,57 +30,74 @@
       background: url('./pics/BG2.png') no-repeat center center;
       background-size: contain;
       color: white;
+      position: relative;
     }
 
-    .header {
-      background: rgba(49, 74, 67, 1);
-      padding: 20px;
+    .map-header {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
       text-align: center;
-      border-bottom: 3px solid #667eea;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      width: 100%;
     }
 
-    .header h1 {
-      font-size: 2.5em;
-      margin-bottom: 10px;
-      background: linear-gradient(100deg, #e10707, #e10707);
+    .map-header h1 {
+      font-size: 2.2em;
+      margin: 0;
+      background: linear-gradient(135deg, #ffd700, #ffed4e);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      text-shadow: 0 2px 6px rgba(255, 215, 0, 0.5);
+      max-width: 90%;
+      display: inline-block;
     }
 
     .stats {
       display: flex;
-      justify-content: center;
-      gap: 40px;
-      margin-top: 10px;
-      font-size: 1.1em;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 12px;
+      margin: 0;
+      padding: 15px 0;
+      width: 100%;
+      align-items: center;
     }
 
     .stat-item {
-      background: rgba(49, 74, 67, 1);
-      padding: 10px 20px;
-      border-radius: 25px;
-      border: 2px solid #e10707;
+      background: linear-gradient(135deg, rgba(49, 74, 67, 0.9), rgba(60, 90, 80, 0.9));
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 215, 0, 0.3);
       display: flex;
       align-items: center;
       gap: 10px;
       backdrop-filter: blur(10px);
+      height: auto;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .stat-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+      border-color: rgba(255, 215, 0, 0.5);
     }
 
     .stat-value {
-      color: #ffb74d;
+      color: #ffd700;
       font-weight: bold;
-      font-size: 1.4em;
-      min-width: 40px;
+      font-size: 1.8em;
+      min-width: 50px;
       text-align: center;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
 
     .stat-label {
-      color: #aaa;
-      font-size: 0.95em;
+      color: #ffffff;
+      font-size: 1.0em;
+      font-weight: 500;
     }
 
     .content {
@@ -89,8 +106,9 @@
       position: relative;
       overflow: hidden;
       gap: 18px;
-      padding: 18px;
+      padding: 18px 18px 18px 18px;
       align-items: stretch;
+      margin-top: 0;
     }
 
     .map-area {
@@ -116,7 +134,7 @@
 /* rgba(237,81,38) */
     .side-panel {
       background: rgba(49, 74, 67, 1);
-      padding: 18px;
+      padding: 10px 15px;
       border-radius: 12px;
       backdrop-filter: blur(10px);
       border: 2px solid rgba(254, 186, 7, 0.35);
@@ -282,11 +300,13 @@
     }
 
     .qrcode-section p {
-      color: #aaa;
-      font-size: 0.85em;
-      margin-bottom: 10px;
+      color: #ffd700;
+      font-size: 1.1em;
+      font-weight: bold;
+      margin-bottom: 15px;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 1.5px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
 
     #qrcode {
@@ -325,11 +345,25 @@
     }
 
     .history-title {
-      color: #a4cab6;
-      font-size: 0.8em;
+      color: #ffd700;
+      font-size: 1.1em;
+      font-weight: bold;
       text-transform: uppercase;
-      margin-bottom: 8px;
-      letter-spacing: 1px;
+      margin-bottom: 12px;
+      letter-spacing: 1.5px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+
+    .admin-title {
+      color: #ffd700;
+      font-size: 1.1em;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-bottom: 15px;
+      letter-spacing: 1.5px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      text-align: center;
     }
 
     .history-box {
@@ -495,26 +529,11 @@
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>跨年互动地图</h1>
-      <div class="stats">
-        <div class="stat-item">
-          <span class="stat-value" id="litCount">0</span>
-          <span class="stat-label">个省份已点亮</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-value" id="totalCount">0</span>
-          <span class="stat-label">人次参与</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-value" id="clientCount">0</span>
-          <span class="stat-label">个大屏在线</span>
-        </div>
-      </div>
-    </div>
-
     <div class="content">
       <div class="map-area">
+        <div class="map-header">
+          <h1>星灯载愿，逐光筑梦</h1>
+        </div>
         <div id="map"></div>
 
         <!-- 加载指示器 -->
@@ -549,6 +568,19 @@
       <!-- 右侧栏目：已点亮 + 点亮记录 -->
       <div class="right-column">
         <div class="side-panel">
+          <div class="stats">
+            <div class="stat-item">
+              <span class="stat-value" id="litCount">0</span>
+              <span class="stat-label">个区域已点亮</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="totalCount">0</span>
+              <span class="stat-label">人次参与</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="side-panel">
           <div class="history-list">
             <div class="history-title">点亮记录</div>
             <div class="history-box" id="historyBox"></div>
@@ -560,15 +592,6 @@
             <p>扫码参与</p>
             <div id="qrcode"></div>
             <div class="url-display" id="urlDisplay"></div>
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="admin-panel">
-            <div class="admin-title">管理</div>
-            <button class="admin-btn" onclick="initializeMapView()">初始化视图</button>
-            <button class="admin-btn danger" onclick="resetMap()">重置数据</button>
-            <button class="admin-btn secondary" onclick="downloadStats()">导出数据</button>
           </div>
         </div>
       </div>
@@ -1416,8 +1439,7 @@
       if (!stats) return;
       
       document.getElementById('litCount').textContent = stats.litCount || 0;
-      document.getElementById('totalCount').textContent = stats.totalSubmissions || 0;
-      document.getElementById('clientCount').textContent = stats.clientsConnected || 0;
+          document.getElementById('totalCount').textContent = stats.totalSubmissions || 0;
       
       // 更新点亮地区状态
       if (stats.litRegions && Array.isArray(stats.litRegions)) {
@@ -2339,12 +2361,13 @@
         }
       }
 
+      // 不再改变区域颜色，保持地图初始半透明状态
       chart.setOption(
         {
           geo: [
-            { regions: provinceRegions },
-            { regions: cityRegions },
-            { regions: districtRegions }
+            { regions: [] },
+            { regions: [] },
+            { regions: [] }
           ]
         },
         { notMerge: false, lazyUpdate: true, silent: true }
@@ -3274,8 +3297,7 @@
     // 更新统计数据
     function updateStats(stats) {
       document.getElementById('litCount').textContent = stats.litCount || 0;
-      document.getElementById('totalCount').textContent = stats.totalSubmissions || 0;
-      document.getElementById('clientCount').textContent = stats.clientsConnected || 0;
+        document.getElementById('totalCount').textContent = stats.totalSubmissions || 0;
     }
 
     // 更新历史记录
@@ -3368,7 +3390,7 @@
       }
     }
 
-    // 更新地图（颜色填充 + 右侧列表）
+    // 更新地图（闪烁小点 + 右侧列表）
     function updateMap() {
       if (!chart || !chartReady) {
         pendingMapUpdate = true;
@@ -3376,6 +3398,138 @@
       }
       pendingMapUpdate = false;
       applyLayerColors();
+      updateScatterPoints(); // 添加闪烁小点更新
+    }
+    
+    // 更新闪烁小点
+    function updateScatterPoints() {
+      if (!chart || !chartReady) return;
+      
+      // 准备散点数据
+      const scatterData = [];
+      
+      // 1. 首先，收集所有点亮的区域ID，并按层级分类
+      const allRegionIds = Object.keys(litRegionState || {});
+      const provinceIds = allRegionIds.filter(id => isProvinceAdcode(id));
+      const cityIds = allRegionIds.filter(id => isCityAdcode(id));
+      const districtIds = allRegionIds.filter(id => isDistrictAdcode(id));
+      
+      // 2. 只保留最具体层级的点：区县 > 市 > 省
+      const validRegionIds = [];
+      
+      // a. 保留所有区县ID（最具体）
+      validRegionIds.push(...districtIds);
+      
+      // b. 保留没有对应区县的市ID
+      for (const cityId of cityIds) {
+        const hasDistrict = districtIds.some(districtId => districtId.startsWith(cityId.slice(0, 4)));
+        if (!hasDistrict) {
+          validRegionIds.push(cityId);
+        }
+      }
+      
+      // c. 保留没有对应市或区县的省ID
+      for (const provinceId of provinceIds) {
+        const hasCity = cityIds.some(cityId => cityId.startsWith(provinceId.slice(0, 2)));
+        const hasDistrict = districtIds.some(districtId => districtId.startsWith(provinceId.slice(0, 2)));
+        if (!hasCity && !hasDistrict) {
+          validRegionIds.push(provinceId);
+        }
+      }
+      
+      // 3. 根据有效区域ID生成散点数据
+      for (const id of validRegionIds) {
+        const st = litRegionState[id];
+        const meta = litRegionsMetaById[String(id)];
+        if (!meta || !meta.centroid) continue;
+        
+        // 转换为经纬度坐标
+        const coord = normalizeLonLat(meta.centroid);
+        if (!coord) continue;
+        
+        scatterData.push({
+          name: meta.name,
+          value: [...coord, 1],
+          regionId: id
+        });
+      }
+      
+      // 检查是否已有散点图系列
+      const hasScatterSeries = chart.getOption().series?.some(s => s.id === 'litPoints');
+      
+      if (hasScatterSeries) {
+        // 更新现有系列数据
+        chart.setOption({
+          series: [
+            {
+              id: 'litPoints',
+              data: scatterData
+            },
+            {
+              id: 'ripplePoints',
+              data: scatterData
+            }
+          ]
+        });
+      } else {
+        // 添加新的散点图系列
+        chart.setOption({
+          series: [
+            {
+              id: 'litPoints',
+              type: 'scatter',
+              coordinateSystem: 'geo',
+              geoIndex: 0,
+              data: scatterData,
+              symbol: 'circle',
+              symbolSize: 8,
+              animation: true,
+              animationDuration: 1000,
+              animationEasing: 'ease-out',
+              itemStyle: {
+                color: '#ffd700',
+                opacity: 0.9
+              },
+              emphasis: {
+                focus: 'series',
+                itemStyle: {
+                  color: '#ffed4e',
+                  opacity: 1,
+                  shadowBlur: 10,
+                  shadowColor: 'rgba(255, 215, 0, 0.8)'
+                },
+                label: {
+                  show: true,
+                  formatter: '{b}',
+                  color: '#ffd700',
+                  fontSize: 12
+                }
+              }
+            },
+            // 添加涟漪效果的散点图
+            {
+              id: 'ripplePoints',
+              type: 'effectScatter',
+              coordinateSystem: 'geo',
+              geoIndex: 0,
+              data: scatterData,
+              symbol: 'circle',
+              symbolSize: 8,
+              showEffectOn: 'render',
+              rippleEffect: {
+                period: 2,
+                scale: 3,
+                brushType: 'fill'
+              },
+              itemStyle: {
+                color: '#ffd700',
+                opacity: 0.6
+              },
+              z: 10
+            }
+          ]
+        });
+      }
     }
 
     function renderHistoryBox() {
@@ -3428,15 +3582,28 @@
       updateStatus('已连接', true);
     };
 
+    // 重新赋值ws.onmessage，确保能访问到所有函数
     ws.onmessage = function (event) {
-      const message = JSON.parse(event.data);
-      console.log('📨 收到消息:', message);
-
-      if (message.type === 'initial_state') {
-        const stats = message.data?.stats || {};
-        document.getElementById('litCount').textContent = stats.litCount || 0;
-        document.getElementById('totalCount').textContent = stats.totalSubmissions || 0;
-        document.getElementById('clientCount').textContent = stats.clientsConnected || 0;
+      const data = event.data;
+      
+      // 处理WebSocket消息的核心函数
+      function processMessage(message) {
+        console.log('📨 收到消息:', message);
+        
+        if (message.type === 'adminCommand') {
+          // 处理管理员命令
+          if (message.command === 'initializeView') {
+            // 执行初始化视图操作
+            console.log('执行初始化视图操作');
+            // 直接调用goToInitialView，避免函数作用域问题
+            goToInitialView({ showToast: true }).catch(error => {
+              console.error('初始化视图操作失败:', error);
+            });
+          }
+        } else if (message.type === 'initial_state') {
+          const stats = message.data?.stats || {};
+          document.getElementById('litCount').textContent = stats.litCount || 0;
+          document.getElementById('totalCount').textContent = stats.totalSubmissions || 0;
 
         // 构建 meta 映射
         litRegionsMetaById = {};
@@ -3467,7 +3634,6 @@
         const stats = d.stats || {};
         document.getElementById('litCount').textContent = stats.litCount || 0;
         document.getElementById('totalCount').textContent = stats.totalSubmissions || 0;
-        document.getElementById('clientCount').textContent = stats.clientsConnected || 0;
 
         // 直接用 stats.litRegions 重建，保证层级累计（省/市/区县）都能同步到前端
         if (Array.isArray(stats.litRegions)) {
@@ -3506,7 +3672,6 @@
         const stats = d.stats || {};
         document.getElementById('litCount').textContent = stats.litCount || 0;
         document.getElementById('totalCount').textContent = stats.totalSubmissions || 0;
-        document.getElementById('clientCount').textContent = stats.clientsConnected || 0;
 
         const displayPlace = String(d.inputPlaceName || '');
         historyItems.push({ nickname: d.nickname, inputPlaceName: displayPlace, matched: null, createdAt: d.createdAt || new Date().toISOString() });
@@ -3523,17 +3688,50 @@
         updateMap();
         showToast('🔄 地图已重置');
       }
-    };
+      }
+      
+      try {
+        if (typeof data === 'string') {
+          // 处理字符串消息
+          console.log('📨 收到字符串消息，正在解析...');
+          const parsedMessage = JSON.parse(data);
+          processMessage(parsedMessage);
+        } else if (data instanceof Blob) {
+          // 处理Blob消息
+          console.log('📨 收到Blob消息，正在转换...');
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            try {
+              const text = e.target.result;
+              const parsedMessage = JSON.parse(text);
+              processMessage(parsedMessage);
+            } catch (error) {
+              console.error('❌ Blob消息解析失败:', error);
+            }
+          };
+          reader.onerror = function(error) {
+            console.error('❌ Blob读取失败:', error);
+          };
+          reader.readAsText(data);
+        } else {
+          // 处理其他类型消息
+          console.log('📨 收到其他类型消息:', data);
+        }
+      } catch (error) {
+        console.error('❌ WebSocket消息处理失败:', error);
+        console.error('原始消息:', data);
+      }
+  };
 
-    ws.onerror = function (error) {
-      console.error('❌ WebSocket 错误:', error);
-      updateStatus('连接错误', false);
-    };
+  ws.onerror = function (error) {
+    console.error('❌ WebSocket 错误:', error);
+    updateStatus('连接错误', false);
+  };
 
-    ws.onclose = function () {
-      console.log('📵 WebSocket 连接已关闭');
-      updateStatus('已断开', false);
-    };
+  ws.onclose = function () {
+    console.log('📵 WebSocket 连接已关闭');
+    updateStatus('已断开', false);
+  };
 
     // 更新连接状态
     function updateStatus(text, isConnected) {

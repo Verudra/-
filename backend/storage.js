@@ -215,14 +215,11 @@ function getStats(lookupRegionMeta) {
     };
   });
 
-  // 大屏 header 仍显示“已点亮省份数”：按 adcode 规则粗略判断省级（xxxx00/xxxxxx 不计入）
-  const provinceLitCount = litRegions.filter((r) => {
-    const s = String(r.id);
-    return /^\d{6}$/.test(s) && s.endsWith('0000');
-  }).length;
+  // 统计所有唯一点亮区域数量
+  const totalLitRegionsCount = litRegions.length;
 
   return {
-    litCount: provinceLitCount,
+    litCount: totalLitRegionsCount,
     totalSubmissions: state.submissions.length,
     litRegions
   };

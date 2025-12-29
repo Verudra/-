@@ -134,6 +134,34 @@ wss.on('connection', (ws) => {
 
   ws.send(JSON.stringify(makeInitialPayload()));
 
+  ws.on('message', (message) => {
+    try {
+      logger.info('收到原始消息:', message);
+      const parsedMessage = JSON.parse(message);
+      logger.info('解析后的消息:', parsedMessage);
+      
+      // 如果是管理员命令，转发给所有客户端
+      if (parsedMessage.type === 'adminCommand') {
+        logger.info('检测到管理员命令:', parsedMessage.command);
+        logger.info(`准备转发给 ${connectedClients.size} 个连接的客户端`);
+        
+        // 转发给所有连接的客户端
+        let forwardedCount = 0;
+        for (const client of connectedClients) {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+            forwardedCount++;
+          }
+        }
+        
+        logger.info(`成功转发给 ${forwardedCount} 个客户端`);
+      }
+    } catch (error) {
+      logger.error(`处理WebSocket消息失败: ${error.message}`);
+      logger.error('失败的消息:', message);
+    }
+  });
+
   ws.on('close', () => {
     logger.warn('客户端已断开连接（大屏）');
     connectedClients.delete(ws);
@@ -410,6 +438,23 @@ app.get('/health', (req, res) => {
     connectedClients: connectedClients.size,
     geo: geoIndex.getMeta()
   });
+});
+
+// 简化URL访问
+app.get('/', (req, res) => {
+  res.redirect('/display.html');
+});
+
+app.get('/d', (req, res) => {
+  res.redirect('/display.html');
+});
+
+app.get('/m', (req, res) => {
+  res.redirect('/mobile.html');
+});
+
+app.get('/a', (req, res) => {
+  res.redirect('/admin.html');
 });
 
 // 404
