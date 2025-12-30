@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>计算机学院互动地图</title>
-  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
   <!-- 注意：ECharts 中国地图需要额外注册 map 数据（china.json），否则 map: 'china' 无法渲染 -->
   <style>
     * {
@@ -15,7 +16,7 @@
 
     body { /* 背景透明，防止遮挡 */
       font-family: 'Arial', sans-serif;
-      background: none;
+      background: #000000;
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -27,8 +28,8 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
-      background: url('./pics/BG2.png') no-repeat center center;
-      background-size: contain;
+      background: url('./pics/BG4.jpg') no-repeat center center;
+      background-size: cover;
       color: white;
       position: relative;
     }
@@ -44,15 +45,21 @@
     }
 
     .map-header h1 {
-      font-size: 2.2em;
+      font-family: KaiTi, '楷体', serif;
+      font-size: 4.0em;
       margin: 0;
-      background: linear-gradient(135deg, #ffd700, #ffed4e);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      text-shadow: 0 2px 6px rgba(255, 215, 0, 0.5);
+      color: #d42517;
+      /* text-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.7),
+        0 0 8px rgba(255, 0, 0, 0.4); */
       max-width: 90%;
       display: inline-block;
+      line-height: 1.2;
+      letter-spacing: 8px;
+      transform: translateY(-10px);
+      text-align: center;
+      font-weight: bold;
+      position: relative;
     }
 
     .stats {
@@ -66,36 +73,36 @@
     }
 
     .stat-item {
-      background: linear-gradient(135deg, rgba(49, 74, 67, 0.9), rgba(60, 90, 80, 0.9));
+      background: rgba(255, 255, 255, 0.15);
       padding: 12px 20px;
       border-radius: 12px;
-      border: 1px solid rgba(255, 215, 0, 0.3);
+      border: 1px solid #d42517;
       display: flex;
       align-items: center;
       gap: 10px;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(15px);
       height: auto;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       transition: all 0.3s ease;
     }
 
     .stat-item:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
-      border-color: rgba(255, 215, 0, 0.5);
+      box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
+      border-color: #d42517;
     }
 
     .stat-value {
-      color: #ffd700;
+      color: #f5391c; 
       font-weight: bold;
       font-size: 1.8em;
       min-width: 50px;
       text-align: center;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
     }
 
     .stat-label {
-      color: #ffffff;
+      color: #333333;
       font-size: 1.0em;
       font-weight: 500;
     }
@@ -117,8 +124,10 @@
       position: relative;
       overflow: hidden;
       border-radius: 12px;
-      border: 2px solid rgba(254, 186, 7, 1);
-      background: rgba(237, 81, 38, 0.3); /* 半透明黑色蒙版，增加地图对比度 */
+      border: 2px solid #d42517;
+      background: rgba(255, 255, 255, 0.3); /* 半透明白色蒙版，增加地图对比度 */
+      backdrop-filter: blur(4px); /* 毛玻璃效果 */
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
 
     .right-column {
@@ -127,17 +136,18 @@
       flex-direction: column;
       gap: 14px;
       height: 100%;
-      background: rgba(244, 67, 54, 0.35);
-      border-left: 3px solid rgba(254, 186, 7, 1);
+      background: transparent;
+      border-left: none;
       padding: 14px 14px 14px 18px;
     }
 /* rgba(237,81,38) */
     .side-panel {
-      background: rgba(49, 74, 67, 1);
+      background: rgba(255, 255, 255, 0.15);
       padding: 10px 15px;
       border-radius: 12px;
-      backdrop-filter: blur(10px);
-      border: 2px solid rgba(254, 186, 7, 0.35);
+      backdrop-filter: blur(15px);
+      border: 2px solid #d42517;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
       z-index: 50;
     }
 
@@ -176,10 +186,10 @@
       max-width: 360px;
       padding: 18px 20px;
       border-radius: 12px;
-      background: rgba(0, 0, 0, 0.68);
-      border: 2px solid rgba(102, 126, 234, 0.35);
+      background: rgba(0, 0, 0, 0.8);
+      border: 2px solid #d42517;
       backdrop-filter: blur(10px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -189,8 +199,8 @@
     .loading-spinner {
       width: 46px;
       height: 46px;
-      border: 4px solid rgba(102, 126, 234, 0.3);
-      border-top: 4px solid #667eea;
+      border: 4px solid rgba(255, 107, 107, 0.3);
+      border-top: 4px solid #d42517;
       border-radius: 50%;
       animation: spin 1s linear infinite;
       margin-bottom: 14px;
@@ -217,11 +227,12 @@
       position: absolute;
       top: 30px;
       right: 30px;
-      background: rgba(244, 67, 54, 0.9);
+      background: rgba(255, 255, 255, 0.15);
       padding: 15px 20px;
       border-radius: 25px;
-      backdrop-filter: blur(10px);
-      border: 2px solid rgba(102, 126, 234, 0.5);
+      backdrop-filter: blur(15px);
+      border: 2px solid #d42517;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
       z-index: 100;
       display: flex;
       align-items: center;
@@ -240,7 +251,7 @@
     }
 
     .level-text {
-      color: #fff;
+      color: #333333;
       font-size: 0.9em;
       font-weight: bold;
     }
@@ -248,7 +259,7 @@
     .level-icon {
       width: 8px;
       height: 8px;
-      background: #667eea;
+      background: #ff6b6b;
       border-radius: 50%;
       animation: blink 2s infinite;
     }
@@ -263,7 +274,7 @@
       position: absolute;
       top: 100px;
       right: 30px;
-      background: rgba(244, 67, 54, 0.9);
+      background: rgba(244, 67, 54, 0.7);
       color: white;
       padding: 15px 20px;
       border-radius: 8px;
@@ -300,13 +311,13 @@
     }
 
     .qrcode-section p {
-      color: #ffd700;
+      color: #333333;
       font-size: 1.1em;
       font-weight: bold;
       margin-bottom: 15px;
       text-transform: uppercase;
       letter-spacing: 1.5px;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      text-shadow: 0 2px 4px rgba(255, 255, 255, 0.3);
     }
 
     #qrcode {
@@ -325,14 +336,14 @@
     .url-display {
       margin-top: 12px;
       font-size: 0.75em;
-      color: #a4cab6;
+      color: #666666;
       word-break: break-all;
       line-height: 1.4;
     }
 
     .divider {
       height: 1px;
-      background: rgba(102, 126, 234, 0.3);
+      background: rgba(255, 107, 107, 0.3);
       margin: 15px 0;
     }
 
@@ -345,39 +356,71 @@
     }
 
     .history-title {
-      color: #ffd700;
+      color: #333333;
       font-size: 1.1em;
       font-weight: bold;
       text-transform: uppercase;
       margin-bottom: 12px;
       letter-spacing: 1.5px;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      text-shadow: 0 2px 4px rgba(255, 255, 255, 0.3);
       text-align: center;
     }
 
     .admin-title {
-      color: #ffd700;
+      color: #333333;
       font-size: 1.1em;
       font-weight: bold;
       text-transform: uppercase;
       margin-bottom: 15px;
       letter-spacing: 1.5px;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      text-shadow: 0 2px 4px rgba(255, 255, 255, 0.3);
       text-align: center;
     }
 
     .history-box {
-      max-height: 260px;
-      overflow: hidden;
+      max-height: 350px;
+      overflow-y: auto;
       border-radius: 8px;
-      border: 1px solid rgba(102, 126, 234, 0.25);
-      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid #d42517;
+      background: rgba(255, 255, 255, 0.1);
       padding: 10px 12px;
+    }
+    
+    .history-list {
+      /* 恢复默认布局 */
+    }
+    
+    .side-panel {
+      /* 恢复默认布局 */
+    }
+    
+    /* 调整右侧三个面板的间距，确保都能显示 */
+    .right-column {
+      justify-content: space-between;
+    }
+    
+    /* 自定义滚动条样式 */
+    .history-box::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .history-box::-webkit-scrollbar-track {
+      background: rgba(220, 20, 60, 0.1);
+      border-radius: 3px;
+    }
+    
+    .history-box::-webkit-scrollbar-thumb {
+      background: rgba(220, 20, 60, 0.5);
+      border-radius: 3px;
+    }
+    
+    .history-box::-webkit-scrollbar-thumb:hover {
+      background: rgba(220, 20, 60, 0.7);
     }
 
     .history-item {
       font-size: 0.85em;
-      color: #e2e7bf;
+      color: #333333;
       line-height: 1.6;
       white-space: nowrap;
       overflow: hidden;
@@ -385,13 +428,75 @@
     }
 
     .history-item .name {
-      color: #fc7930;
+      color: #1e3a8a;
       font-weight: bold;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
     }
 
     .history-item .place {
-      color: #a4cab6;
+      color: #dc143c;
       font-weight: bold;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
+    }
+
+    .history-card {
+      position: absolute;
+      left: 0;
+      right: 0;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 8px;
+      border: 1px solid #d42517;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      font-size: 0.85em;
+      color: #333333;
+      line-height: 1.6;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+    }
+
+    .history-card .name {
+      color: #1e3a8a;
+      font-weight: bold;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
+    }
+
+    .history-card .place {
+      color: #dc143c;
+      font-weight: bold;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
+    }
+
+    .history-card.slide-in {
+      animation: slideInFromBottom 0.3s ease-out forwards;
+    }
+
+    .history-card.slide-out {
+      animation: slideOutToBottom 0.3s ease-out forwards;
+    }
+
+    @keyframes slideInFromBottom {
+      from {
+        transform: translateY(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideOutToBottom {
+      from {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateY(100%);
+        opacity: 0;
+      }
     }
 
     .admin-panel {
@@ -404,9 +509,9 @@
     /* 已点亮模块已移除 */
 
     .admin-btn {
-      background: linear-gradient(135deg, #667eea, #764ba2);
+      background: rgba(178, 34, 34, 0.9);
       color: white;
-      border: none;
+      border: 1px solid rgba(255, 193, 7, 0.5);
       padding: 11px 14px;
       border-radius: 10px;
       cursor: pointer;
@@ -416,24 +521,24 @@
       display: block;
       width: 100%;
       margin-bottom: 10px;
-      box-shadow: 0 6px 18px rgba(102, 126, 234, 0.25);
+      box-shadow: 0 6px 18px rgba(178, 34, 34, 0.3);
     }
 
     .admin-btn.secondary {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(102, 126, 234, 0.55);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 193, 7, 0.55);
       box-shadow: none;
     }
 
     .admin-btn.danger {
-      background: linear-gradient(135deg, #ff6b6b, #ff8787);
-      box-shadow: 0 6px 18px rgba(255, 107, 107, 0.25);
+      background: rgba(220, 20, 60, 0.9);
+      box-shadow: 0 6px 18px rgba(220, 20, 60, 0.3);
     }
 
 
     .admin-btn:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 10px 26px rgba(102, 126, 234, 0.35);
+      box-shadow: 0 10px 26px rgba(255, 107, 107, 0.35);
     }
 
     .admin-btn.danger:hover:not(:disabled) {
@@ -461,15 +566,15 @@
     }
 
     .connected {
-      background: rgba(74, 222, 128, 0.2);
-      color: #4ade80;
-      border: 1px solid rgba(74, 222, 128, 0.4);
+      background: rgba(255, 255, 255, 0.15);
+      color: #333333;
+      border: 1px solid #d42517;
     }
-
+    
     .disconnected {
-      background: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
-      border: 1px solid rgba(239, 68, 68, 0.4);
+      background: rgba(255, 255, 255, 0.15);
+      color: #333333;
+      border: 1px solid #d42517;
     }
 
     .status-dot {
@@ -481,7 +586,7 @@
     }
 
     .connected .status-dot {
-      background: #4ade80;
+      background: #ff6b6b;
     }
 
     .disconnected .status-dot {
@@ -506,9 +611,14 @@
       color: white;
       padding: 14px 28px;
       border-radius: 8px;
-      border: 2px solid #667eea;
+      border: 2px solid #ff6b6b;
       z-index: 200;
       animation: slideUp 0.3s ease-out;
+      font-size: 1.2em;
+      font-weight: bold;
+      font-family: 'Microsoft YaHei', sans-serif;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      letter-spacing: 0.5px;
     }
 
     @keyframes slideUp {
@@ -525,9 +635,213 @@
     .scrollbar-hide::-webkit-scrollbar {
       display: none;
     }
+    
+    /* 弹出窗口样式 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(5px);
+      z-index: 1000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .modal-overlay.active {
+      display: flex;
+    }
+    
+    .modal {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(15px);
+      border: 2px solid rgba(139, 0, 0, 0.5);
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      max-width: 80%;
+      max-height: 80%;
+      width: 600px;
+      overflow: hidden;
+      display: none;
+      flex-direction: column;
+      margin: auto;
+    }
+    
+    .modal.active {
+      display: flex;
+      animation: modalSlideIn 0.3s ease-out;
+    }
+    
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid rgba(139, 0, 0, 0.3);
+      background: rgba(255, 255, 255, 0.9);
+      color: #333;
+    }
+    
+    .modal-header h2 {
+      margin: 0;
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #8b0000;
+    }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      color: #8b0000;
+      font-size: 2em;
+      cursor: pointer;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+    }
+
+    .modal-close:hover {
+      background: rgba(139, 0, 0, 0.1);
+      transform: scale(1.1);
+    }
+    
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+      color: #333333;
+    }
+    
+    .modal-body::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .modal-body::-webkit-scrollbar-track {
+      background: rgba(139, 0, 0, 0.1);
+      border-radius: 4px;
+    }
+    
+    .modal-body::-webkit-scrollbar-thumb {
+      background: rgba(139, 0, 0, 0.6);
+      border-radius: 4px;
+    }
+    
+    .modal-body::-webkit-scrollbar-thumb:hover {
+      background: rgba(139, 0, 0, 0.8);
+    }
+    
+    /* 区域列表样式 */
+    .region-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    
+    .region-item {
+      background: rgba(139, 0, 0, 0.1);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(139, 0, 0, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .region-item:hover {
+      background: rgba(139, 0, 0, 0.2);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .region-name {
+      font-weight: bold;
+      color: #8b0000;
+      display: block;
+    }
+    
+    .region-count {
+      font-size: 0.9em;
+      opacity: 0.8;
+    }
+    
+    /* 统计信息样式 */
+    .stat-detail {
+      background: rgba(139, 0, 0, 0.1);
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border: 1px solid rgba(139, 0, 0, 0.3);
+    }
+
+    .stat-detail h3 {
+      margin: 0 0 10px 0;
+      color: #8b0000;
+      font-size: 1.2em;
+    }
+    
+    .stat-detail p {
+      margin: 5px 0;
+      line-height: 1.6;
+    }
+    
+    /* 统计项可点击样式 */
+    .stat-item {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .stat-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(255, 193, 7, 0.3);
+    }
   </style>
 </head>
 <body>
+  <!-- 弹出窗口容器 -->
+  <div class="modal-overlay" id="modalOverlay">
+    <!-- 已点亮区域详情窗口 -->
+    <div class="modal" id="litAreasModal">
+      <div class="modal-header">
+        <h2>已点亮区域详情</h2>
+        <button class="modal-close" id="closeLitAreasModal">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="litAreasContent"></div>
+      </div>
+    </div>
+    
+    <!-- 参与人次详情窗口 -->
+    <div class="modal" id="participantsModal">
+      <div class="modal-header">
+        <h2>参与人次详情</h2>
+        <button class="modal-close" id="closeParticipantsModal">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="participantsContent"></div>
+      </div>
+    </div>
+  </div>
+  
   <div class="container">
     <div class="content">
       <div class="map-area">
@@ -569,11 +883,11 @@
       <div class="right-column">
         <div class="side-panel">
           <div class="stats">
-            <div class="stat-item">
+            <div class="stat-item" id="litCountItem">
               <span class="stat-value" id="litCount">0</span>
               <span class="stat-label">个区域已点亮</span>
             </div>
-            <div class="stat-item">
+            <div class="stat-item" id="totalCountItem">
               <span class="stat-value" id="totalCount">0</span>
               <span class="stat-label">人次参与</span>
             </div>
@@ -584,6 +898,7 @@
           <div class="history-list">
             <div class="history-title">点亮记录</div>
             <div class="history-box" id="historyBox"></div>
+            <div class="history-card-container" id="historyCardContainer" style="position: relative; height: 40px; overflow: hidden;"></div>
           </div>
         </div>
 
@@ -592,6 +907,7 @@
             <p>扫码参与</p>
             <div id="qrcode"></div>
             <div class="url-display" id="urlDisplay"></div>
+            <button id="initializeMapBtn" class="admin-btn" style="margin-top: 15px;">初始化地图视图</button>
           </div>
         </div>
       </div>
@@ -607,6 +923,10 @@
     let litRegionsMetaById = {};
     let historyItems = [];
     let historyTimer = null;
+    let currentHistoryCard = null;
+    let pendingHistoryCard = null;
+    let historyCardDisplayTime = 0;
+    let historyCardMinDisplayTime = 300;
 
     const ws = new WebSocket(`${wsProtocol}//${window.location.host}`);
     let provinces = [];
@@ -980,18 +1300,30 @@
     let mapFadecnt = 0;
 
 
-    function playMapFadeIn(durationMs = 420, maxAlpha = 0.28) {
+    function playMapFadeIn(durationMs = 1000, maxAlpha = 0.1) {
       /*
-      播放地图淡入动画
+      播放地图淡入动画：先渐黑，再渐透明
       */
       if (!chart || !chartReady) return Promise.resolve();
       const start = performance.now();
       const currentCnt = mapFadecnt ++;
+      const halfDuration = durationMs / 4;
       return new Promise(resolve => {
         function step(now) {
-          const t = clamp((now - start) / durationMs, 0, 1);
-          const k = 1 - t;
-          const a = maxAlpha * k;
+          const elapsed = now - start;
+          const t = clamp(elapsed / durationMs, 0, 1);
+          let alpha;
+          
+          if (elapsed <= halfDuration) {
+            // 第一阶段：渐黑（从0到maxAlpha）
+            const fadeInT = elapsed / halfDuration;
+            alpha = maxAlpha * fadeInT;
+          } else {
+            // 第二阶段：渐透明（从maxAlpha到0）
+            const fadeOutT = (elapsed - halfDuration) / halfDuration;
+            alpha = maxAlpha * (1 - fadeOutT);
+          }
+          
           chart.setOption(
             {
               graphic: [
@@ -1002,7 +1334,7 @@
                   left: 0,
                   top: 0,
                   shape: { x: 0, y: 0, width: chart.getWidth(), height: chart.getHeight() },
-                  style: { fill: `rgba(0,0,0,${a.toFixed(4)})` },
+                  style: { fill: `rgba(0,0,0,${alpha.toFixed(4)})` },
                   z: 998
                 }
               ]
@@ -1022,18 +1354,60 @@
         requestAnimationFrame(step);
       });
     }
-    
-    function playFireworkAt(coord, blessingText = '马年吉祥', geoIndex = 0) {
+
+    const newYearBlessings = [
+      '辞暮尔尔，烟火年年。 祝你新年快乐，日子越过越红火。',
+      '岁末将至，敬颂冬绥。 愿你在新的一年里，身体健康，诸事顺遂。',
+      '一元复始，旭日始旦。 愿新年的阳光驱散所有阴霾，未来一片光明。',
+      '愿你新的一年：长乐未央，永受嘉福。 平安喜乐，岁岁年年。',
+      '愿新的一年里，你的好运如约而至，你的快乐不期而遇。',
+      '祝你新的一年：有趣有盼，不负韶华，所得皆是福气。',
+      '愿你2026年：步履不停，热爱满怀，在自己的领域里熠熠生辉。',
+      '祝你龙马精神，勇往直前，新的一年开启全新的篇章。',
+      '愿你所有付出的努力，在新的一年都能结出丰硕的果实。',
+      '祝你：所得皆所期，所行皆坦途，未来日子闪闪发光。',
+      '新年新高度！愿你事业生活两相宜，好运连连挡不住。',
+      '凛冬尽散，星河长明。 祝你新年如诗如画，生活灿烂如花。',
+      '愿新年的钟声，带走岁月的尘垢，唤醒春天的希冀。',
+      '且以喜乐，越过经年。 愿你2026年，万事胜意，不负期待。',
+      '愿你每一岁都奔赴在热爱里，每一天都活在喜悦中。',
+      '岁岁落满地，年年起新意。 祝你新春快乐，岁岁常欢愉。',
+      '新年快乐，万事如意！ 祝你在新的一年里，身体健康，阖家幸福。',
+      '岁岁平安，年年如意。 祝你2026年所求皆所愿，所行皆坦途。',
+      '祝你新春快乐，顺心顺意！ 愿好运常伴左右，生活甜蜜美满。',
+      '愿新的一年，大吉大利，万事胜意！',
+      '新年新气象，好运在身旁。 祝你开开心心，平安顺遂。',
+      '万物更新，旧疾当愈。 祝你新的一年，身心愉悦，无忧无虑。',
+      '岁岁常欢愉，年年皆胜意。 新年快乐！',
+      '愿你新的一年：有趣有盼，无灾无难。',
+      '祝你事业有成，步步高升，生活顺心，天天开心！',
+      '愿你新的一年，眼里有光，心中有梦，兜里有钱。',
+      '生活明朗，万物可爱。 祝你在2026年遇见所有的美好。',
+      '新的一年，祝你多吃不胖，财源广进，万事顺遂。',
+      '愿你在这个春天，播种希望，收获满盈。新年快乐！',
+      '祝你：心之所向，行之所往，皆能圆满。',
+      '愿新年的钟声，带给你一整年的平安与喜悦。',
+      '一元复始，万象更新。 祝你新年新面貌，好事连连。',
+      '愿你2026年，一日三餐有暖意，四季欢喜有余庆。',
+      '愿你新年里，有忙有闲，有喜有乐，日子过得红红火火。',
+      '不论世界如何变幻，愿你始终保持热爱，奔赴山海。'
+    ];
+
+    function getRandomBlessing() {
+      return newYearBlessings[Math.floor(Math.random() * newYearBlessings.length)];
+    }
+
+    function playFireworkAt(coord, blessingText = '马年吉祥', geoIndex = 0, placeName = '', nickname = '') {
       if (!chart || !chartReady) return Promise.resolve();
       if (!coord) return Promise.resolve();
       clearFirework();
 
-      // 每次发射使用唯一 id，避免 ECharts graphic 复用/移除时的竞态与冲突
+      blessingText = getRandomBlessing();
+
       const mySeq = fireworkSeq;
       const groupId = `firework_${mySeq}`;
       currentFireworkGroupId = groupId;
 
-      // 固定用 base geo 做像素换算，避免 overlay 坐标系/显示状态引入偏移
       const gi = geoIndex;
 
       const c = normalizeLonLat(coord);
@@ -1056,10 +1430,11 @@
       const rocketId = `fw_rocket_${mySeq}`;
       const trailId = `fw_trail_${mySeq}`;
       const blessId = `fw_bless_${mySeq}`;
-      const particles = Array.from({ length: 14 }).map((_, i) => ({
+      const placeId = `fw_place_${mySeq}`;
+      const particles = Array.from({ length: 40 }).map((_, i) => ({
         id: `fw_p_${mySeq}_${i}`,
-        a: (Math.PI * 2 * i) / 14,
-        r: 52 + (i % 3) * 12
+        a: Math.random() * Math.PI * 2,
+        r: 40 + (i % 5) * 12 + Math.random() * 8
       }));
 
       chart.setOption(
@@ -1077,6 +1452,7 @@
                 {
                   id: trailId,
                   type: 'line',
+                  invisible: true,
                   shape: { x1: tx, y1: sy, x2: tx, y2: ty },
                   style: { stroke: 'rgba(255,183,77,0.55)', lineWidth: 2 },
                   z: 999
@@ -1084,6 +1460,7 @@
                 {
                   id: rocketId,
                   type: 'circle',
+                  invisible: true,
                   shape: { cx: tx, cy: sy, r: 4 },
                   style: { fill: '#ffb74d', shadowBlur: 8, shadowColor: 'rgba(255,183,77,0.55)' },
                   z: 1000
@@ -1099,9 +1476,9 @@
                 {
                   id: blessId,
                   type: 'text',
-                  invisible: false,
-                  left: tx,
-                  top: ty - 34,
+                  invisible: true,
+                  x: tx,
+                  y: ty - 80,
                   style: {
                     text: String(blessingText),
                     fill: '#ffb74d',
@@ -1109,10 +1486,28 @@
                     textAlign: 'center',
                     textVerticalAlign: 'middle',
                     stroke: 'rgba(0,0,0,0.55)',
-                    lineWidth: 4,
+                    lineWidth: 3,
                     opacity: 0
                   },
                   z: 1001
+                },
+                {
+                  id: placeId,
+                  type: 'text',
+                  invisible: true,
+                  x: tx,
+                  y: sy + 25,
+                  style: {
+                    text: nickname && placeName ? `${nickname} 点亮了 ${placeName}` : String(placeName),
+                    fill: '#ffb74d',
+                    font: '700 26px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+                    textAlign: 'center',
+                    textVerticalAlign: 'middle',
+                    stroke: 'rgba(0,0,0,0.6)',
+                    lineWidth: 3,
+                    opacity: 1
+                  },
+                  z: 1002
                 }
               ]
             }
@@ -1122,9 +1517,9 @@
       );
 
       const t0 = performance.now();
-      const riseMs = 820;
-      const boomMs = 760;
-      const blessMs = 1580;
+      const riseMs = 800;
+      const boomMs = 600;
+      const blessMs = 2000;
       const totalMs = riseMs + boomMs + blessMs;
       return new Promise(resolve => {
         function step(now) {
@@ -1153,7 +1548,7 @@
 
           const dt = now - t0;
           if (dt <= riseMs) {
-            const k = easeInOutCubic(dt / riseMs);
+            const k = easeOutQuad(dt / riseMs);
             const cy = sy + (ty - sy) * k;
             chart.setOption(
               {
@@ -1175,7 +1570,23 @@
                         shape: { cx: tx, cy: cy, r: 9 - 3 * k}
                       },
                       ...particles.map(p => ({ id: p.id,type: 'circle', invisible: true })),
-                      { id: blessId, invisible: true }
+                      { id: blessId, invisible: true },
+                      {
+                        id: placeId,
+                        invisible: false,
+                        x: tx,
+                        y: sy + 50,
+                        style: {
+                          text: nickname && placeName ? `${nickname} 点亮了 ${placeName}` : String(placeName),
+                          fill: '#ffb74d',
+                          font: '700 26px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+                          textAlign: 'center',
+                          textVerticalAlign: 'middle',
+                          stroke: 'rgba(0,0,0,0.6)',
+                          lineWidth: 3,
+                          opacity: 1
+                        },
+                      }
                     ]
                   }
                 ]
@@ -1200,11 +1611,27 @@
                         shape: {
                           cx: tx + Math.cos(p.a) * p.r * k,
                           cy: ty + Math.sin(p.a) * p.r * k,
-                          r: 3.2
+                          r: 4.5
                         },
                         style: { opacity: alpha }
                       })),
-                      { id: blessId, invisible: true }
+                      { id: blessId, invisible: true },
+                      {
+                        id: placeId,
+                        invisible: false,
+                        x: tx,
+                        y: sy + 50,
+                        style: {
+                          text: nickname && placeName ? `${nickname} 点亮了 ${placeName}` : String(placeName),
+                          fill: '#ffb74d',
+                          font: '700 26px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+                          textAlign: 'center',
+                          textVerticalAlign: 'middle',
+                          stroke: 'rgba(0,0,0,0.6)',
+                          lineWidth: 3,
+                          opacity: 1
+                        },
+                      }
                     ]
                   }
                 ]
@@ -1214,7 +1641,7 @@
           } else {
             const t = clamp((dt - riseMs - boomMs) / blessMs, 0, 1);
             const k = easeInOutCubic(t);
-            const opacity = t < 0.65 ? k : (1 - (t - 0.65) / 0.35);
+            const opacity = t < 0.7 ? k : 1;
             chart.setOption(
               {
                 graphic: [
@@ -1227,18 +1654,34 @@
                       {
                         id: blessId,
                         invisible: false,
-                        left: tx-70,
-                        top: ty - 34,
-                        style: { 
-                          opacity: clamp(opacity, 0, 1),
+                        x: tx,
+                        y: ty - 80,
+                        style: {
                           text: String(blessingText),
                           fill: '#ffb74d',
-                          font: '800 35px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+                          font: '800 50px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
                           textAlign: 'center',
                           textVerticalAlign: 'middle',
                           stroke: 'rgba(0,0,0,0.55)',
-                          lineWidth: 4
-                        }
+                          lineWidth: 3,
+                          opacity: opacity
+                        },
+                      },
+                      {
+                        id: placeId,
+                        invisible: false,
+                        x: tx,
+                        y: sy + 50,
+                        style: {
+                          text: nickname && placeName ? `${nickname} 点亮了 ${placeName}` : String(placeName),
+                          fill: '#ffb74d',
+                          font: '700 26px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+                          textAlign: 'center',
+                          textVerticalAlign: 'middle',
+                          stroke: 'rgba(0,0,0,0.6)',
+                          lineWidth: 3,
+                          opacity: 1
+                        },
                       }
                     ]
                   }
@@ -1263,9 +1706,9 @@
       });
     }
 
-    function enqueueAutoFocus(matched, cascadeIds) {
+    function enqueueAutoFocus(matched, cascadeIds, nickname = '') {
       if (!matched) return;
-      autoFocusQueue.push({ matched, cascadeIds, receivedAt: Date.now() });
+      autoFocusQueue.push({ matched, cascadeIds, nickname, receivedAt: Date.now() });
       processAutoFocusQueue();
     }
 
@@ -1278,7 +1721,7 @@
           const item = autoFocusQueue.shift();
           try {
             if (!isChartUsable()) break;
-            await autoFocusToMatched(item.matched, item.cascadeIds);
+            await autoFocusToMatched(item.matched, item.cascadeIds, item.nickname);
           } catch (e) {
             console.error('自动聚焦执行失败:', e);
           }
@@ -1292,17 +1735,17 @@
 
     // 初始全国视图：稍微放大一点
     const INITIAL_VIEW = {
-      center: [104.0, 35.0],
+      center: [107.0, 35.0],
       zoom: 1.45
     };
 
     // 颜色映射（按点亮次数）
-    const COLOR_L1 = '#be4600'; 
-    const COLOR_L2 = '#ff9455'; 
-    const COLOR_L3 = '#ffd192'; 
-    const COLOR_L1_F = '#ffd192';
-    const COLOR_L2_F = '#ffd192'; 
-    const COLOR_L3_F = '#f27635';
+    const COLOR_L1 = '#c92a2a'; // 深红色
+    const COLOR_L2 = '#e03131'; // 中红色
+    const COLOR_L3 = '#ff6b6b'; // 亮红色
+    const COLOR_L1_F = '#8b0000'; // 深红色文字
+    const COLOR_L2_F = '#8b0000'; // 深红色文字
+    const COLOR_L3_F = '#8b0000'; // 深红色文字
     function colorForCount(count) {
       const c = Number(count || 0);
       if (c >= 20) return COLOR_L3;
@@ -1465,6 +1908,144 @@
         updateMap();
       }
     }
+    
+    // 弹出窗口控制函数
+    function openModal(modalId) {
+      const overlay = document.getElementById('modalOverlay');
+      overlay.classList.add('active');
+      
+      // 显示指定的模态窗口
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        // 先隐藏所有其他模态窗口
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(m => m.classList.remove('active'));
+        
+        // 显示目标模态窗口
+        modal.classList.add('active');
+      }
+      
+      // 阻止背景滚动
+      document.body.style.overflow = 'hidden';
+    }
+    
+    function closeModal() {
+      const overlay = document.getElementById('modalOverlay');
+      overlay.classList.remove('active');
+      
+      // 隐藏所有模态窗口
+      const modals = document.querySelectorAll('.modal');
+      modals.forEach(modal => {
+        modal.classList.remove('active');
+      });
+      
+      // 恢复背景滚动
+      document.body.style.overflow = '';
+    }
+    
+    // 显示已点亮区域详情
+    function showLitAreas() {
+      const content = document.getElementById('litAreasContent');
+      
+      // 准备区域数据
+      const regions = Object.entries(litRegionState).map(([id, st]) => ({
+        id,
+        name: litRegionsMetaById[id]?.name || id,
+        count: st.count || 0
+      }));
+      
+      // 按名称排序
+      regions.sort((a, b) => a.name.localeCompare(b.name));
+      
+      // 生成HTML
+      if (regions.length === 0) {
+        content.innerHTML = '<p style="text-align: center; opacity: 0.8;">暂无已点亮区域</p>';
+      } else {
+        const regionItems = regions.map(region => `
+          <li class="region-item">
+            <span class="region-name">${region.name}</span>
+            <span class="region-count">${region.count}次点亮</span>
+          </li>
+        `).join('');
+        
+        content.innerHTML = `
+          <h3 style="margin-top: 0; color: #8b0000;">已点亮区域 (${regions.length})</h3>
+          <ul class="region-list">
+            ${regionItems}
+          </ul>
+        `;
+      }
+      
+      openModal('litAreasModal');
+    }
+    
+    // 显示参与人次详情
+    function showParticipants() {
+      const content = document.getElementById('participantsContent');
+      
+      // 生成HTML
+      content.innerHTML = `
+        <div class="stat-detail">
+          <h3>参与人次统计</h3>
+          <p><strong>总参与人次:</strong> ${document.getElementById('totalCount').textContent}</p>
+          <p><strong>已点亮区域:</strong> ${document.getElementById('litCount').textContent}</p>
+          <p><strong>平均点亮次数:</strong> ${litRegionState ? (Object.keys(litRegionState).length > 0 ? Math.round(parseInt(document.getElementById('totalCount').textContent) / Object.keys(litRegionState).length * 10) / 10 : 0) : 0}</p>
+        </div>
+        <div class="stat-detail">
+          <h3>参与说明</h3>
+          <p>参与人次统计包括所有成功提交的点亮请求，无论是否成功点亮区域。</p>
+          <p>已点亮区域统计包括所有成功点亮的不同区域。</p>
+        </div>
+      `;
+      
+      openModal('participantsModal');
+    }
+    
+    // 初始化页面事件
+    function initPageEvents() {
+      // 初始化弹出窗口事件
+      // 点击已点亮区域统计项
+      const litCountItem = document.getElementById('litCountItem');
+      litCountItem.addEventListener('click', showLitAreas);
+      
+      // 点击参与人次统计项
+      const totalCountItem = document.getElementById('totalCountItem');
+      totalCountItem.addEventListener('click', showParticipants);
+      
+      // 点击关闭按钮
+      document.getElementById('closeLitAreasModal').addEventListener('click', closeModal);
+      document.getElementById('closeParticipantsModal').addEventListener('click', closeModal);
+      
+      // 点击遮罩层关闭
+      const overlay = document.getElementById('modalOverlay');
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          closeModal();
+        }
+      });
+      
+      // 按ESC键关闭
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closeModal();
+        }
+      });
+      
+      // 初始化地图按钮事件
+      const initializeMapBtn = document.getElementById('initializeMapBtn');
+      if (initializeMapBtn) {
+        initializeMapBtn.addEventListener('click', async () => {
+          try {
+            await initializeMapView();
+          } catch (error) {
+            console.error('初始化地图失败:', error);
+          }
+        });
+      }
+    }
+    
+    // 页面加载完成后初始化事件
+    window.addEventListener('load', initPageEvents);
 
     // 更新历史记录
     function updateHistory(history) {
@@ -1488,6 +2069,40 @@
       historyBox.scrollTop = historyBox.scrollHeight;
     }
 
+    // 显示历史卡牌
+    function showHistoryCard(nickname, regionName) {
+      const container = document.getElementById('historyCardContainer');
+      if (!container) return;
+
+      const card = document.createElement('div');
+      card.className = 'history-card slide-in';
+      card.innerHTML = `<span class="name">${nickname}</span> 点亮了 <span class="place">${regionName}</span>`;
+
+      const now = Date.now();
+      const displayDuration = now - historyCardDisplayTime;
+
+      if (currentHistoryCard && displayDuration >= historyCardMinDisplayTime) {
+        currentHistoryCard.classList.remove('slide-in');
+        currentHistoryCard.classList.add('slide-out');
+        
+        setTimeout(() => {
+          if (currentHistoryCard && currentHistoryCard.parentNode) {
+            currentHistoryCard.parentNode.removeChild(currentHistoryCard);
+          }
+        }, 300);
+      }
+
+      container.appendChild(card);
+      currentHistoryCard = card;
+      historyCardDisplayTime = now;
+
+      setTimeout(() => {
+        if (card && card.parentNode) {
+          card.classList.remove('slide-in');
+        }
+      }, 300);
+    }
+
     // 处理地区点亮事件
     function handleRegionLit(data) {
       if (!data || !data.regionId) return;
@@ -1508,6 +2123,9 @@
           historyItems = historyItems.slice(-20);
         }
         updateHistory(historyItems);
+        
+        // 显示卡牌
+        showHistoryCard(data.nickname, data.regionName);
       }
       
       // 自动聚焦到点亮的地区
@@ -1825,6 +2443,18 @@
       return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
     }
 
+    function easeOutCubic(t) {
+      /*缓动函数：先快后慢*/
+      const x = clamp(t, 0, 1);
+      return 1 - Math.pow(1 - x, 3);
+    }
+
+    function easeOutQuad(t) {
+      /*缓动函数：先快后慢（更平缓）*/
+      const x = clamp(t, 0, 1);
+      return 1 - (1 - x) * (1 - x);
+    }
+
     // 取消在途视图动画：避免并发动画导致边界/视图错位
     let geoAnimSeq = 0;
 
@@ -2045,18 +2675,18 @@
               itemStyle: {
                 areaColor: 'rgba(100, 72, 61, 0.85)', // 增加不透明度，使地图更清晰
                 borderColor: '#fbb929', // 省级地图边框
-                borderWidth: 1.4
+                borderWidth: 1.2
               },
               emphasis: {
                 label: {// 鼠标悬浮在省时的省名样式
                   show: true,
-                  color: '#ffd700', //名字颜色
+                  color: '#8b0000', //名字颜色
                   fontSize: 14
                 },
                 itemStyle: {
                   areaColor: 'rgba(171, 55, 47, 0.8)', // 鼠标悬浮省份颜色
                   borderColor: '#ffd700',
-                  borderWidth: 1.6
+                  borderWidth: 1.4
                 }
               },
               // 避免“点击选中变黄”的默认 select 样式
@@ -2079,13 +2709,13 @@
               label: { show: false },
               itemStyle: {
                 areaColor: 'transparent',// 市级底色
-                borderColor: 'rgba(239, 175, 173, 0.75)', // 市级边界颜色
+                borderColor: 'rgba(255, 107, 107, 0.75)', // 市级边界颜色
                 borderWidth: 0.9
               },
               emphasis: {
                 label: {
                   show: true,
-                  color: '#ab372f', // 市级文字
+                  color: '#8b0000', // 市级文字
                   fontSize: 12
                 },
                 itemStyle: {
@@ -2106,13 +2736,13 @@
               label: { show: false },
               itemStyle: {
                 areaColor: 'transparent',
-                borderColor: 'rgba(239, 175, 173, 0.75)', 
+                borderColor: 'rgba(255, 107, 107, 0.75)', 
                 borderWidth: 0.6
               },
               emphasis: {
                 label: {
                   show: true,
-                  color: '#ab372f', // 县级字体
+                  color: '#8b0000', // 县级字体
                   fontSize: 11
                 },
                 itemStyle: {
@@ -2362,12 +2992,28 @@
       }
 
       // 不再改变区域颜色，保持地图初始半透明状态
+      // 获取当前 geo 配置以保留视图参数
+      const currentOption = chart.getOption();
+      const currentGeo = currentOption.geo || [];
+      
       chart.setOption(
         {
           geo: [
             { regions: [] },
-            { regions: [] },
-            { regions: [] }
+            { 
+              regions: [],
+              // 保留市级边界的视图参数
+              center: currentGeo[1]?.center,
+              zoom: currentGeo[1]?.zoom,
+              boundingCoords: currentGeo[1]?.boundingCoords
+            },
+            { 
+              regions: [],
+              // 保留区县边界的视图参数
+              center: currentGeo[2]?.center,
+              zoom: currentGeo[2]?.zoom,
+              boundingCoords: currentGeo[2]?.boundingCoords
+            }
           ]
         },
         { notMerge: false, lazyUpdate: true, silent: true }
@@ -2379,7 +3025,7 @@
       cancelAutoReturn();
 
       // 渐显：让回到全国/重新上色更流畅
-      playMapFadeIn(750, 0.400);
+      playMapFadeIn(1000, 0.100);
 
       // 不重建图表：先收起边界，再动画回全国
       drillSeq++;
@@ -2414,7 +3060,7 @@
       await anim;
       updateMap();
       UIController.updateLevelIndicator('layered', '省级地图（点击省→市→区县）');
-      if (shouldToast) showToast('🧭 已恢复初始视图');
+      if (shouldToast) showToast('已恢复初始视图');
     }
 
     // 初始化视图（按钮入口）
@@ -2541,68 +3187,55 @@
       updateMap();
     }
 
-    async function autoFocusToMatched(matched, cascadeIds) {
+    async function autoFocusToMatched(matched, cascadeIds, nickname = '') {
       if (!matched) return;
       if (!isChartUsable()) return;
 
       cancelAutoReturn();
       clearFocusLabel();
-      // 渐显：点亮触发自动聚焦时更柔和
-      // playMapFadeIn(420, 0.26);
+      
       const rawId = String(matched.id || '').trim();
       const rawLvl = matched.level || inferLevelFromAdcode(rawId);
       const id = normalizeRegionIdByLevel(rawId, rawLvl);
       const lvl = rawLvl || inferLevelFromAdcode(id);
       if (!id || !lvl) return;
 
-      // 自动聚焦开始：不希望之后的旧异步流程覆盖当前视图
       drillSeq++;
 
       if (lvl === 'province') {
         if (!isChartUsable()) return;
-        // 省：只聚焦省，不显示市级边界
-        selectedProvince = null;
-        selectedCity = null;
-        selectedCitiesGeoJson = null;
-        currentMapLevel = 'province';
-        currentViewRegion = null;
-        cityFeatureNameById = new Map();
-        cityFeatureById = new Map();
-        districtFeatureNameById = new Map();
-        districtFeatureById = new Map();
-        console.log("设置前");
-        chart.setOption(
-          {
-            geo: [
-              { map: 'china', silent: false, emphasis: { label: { show: true } } },
-              { show: false, map: 'china', silent: false },
-              { show: false, map: 'china', silent: false }
-            ]
-          },
-          { notMerge: false, lazyUpdate: false, silent: true }
-        );
-        updateMap();
+        
         await ensureProvinceHitGeoLoaded();
         if (!isChartUsable()) return;
+        
         const pFeature = provinceFeatureById.get(id) || null;
         const pCenter = featureCenterFromGeometry(pFeature) || pickFeatureCoord(pFeature) || pickMatchedCoord(matched);
         const pZoom = computeProvinceTargetZoom(pFeature);
-        if (pCenter && Number.isFinite(pZoom)) {
-          await animateGeoViewTo(pCenter, pZoom, 680);
-        }
-        if (!isChartUsable()) return;
-        updateMap();
-        if (pCenter) {
-          const a = resolveAnchorForLevel('province', id, pCenter);
-          const anchorCoord = a?.coord || pCenter;
-          const anchorGi = Number.isFinite(Number(a?.geoIndex)) ? Number(a.geoIndex) : 0;
-          showFocusLabel(String(matched.name || ''), anchorCoord, 1000);
-          await delay(1050);
-          clearFocusLabel();
+        
+        if (!pCenter) {
+          console.warn('无法获取省份中心点:', id, matched);
           scheduleAutoReturnToNational();
-          await playFireworkAt(anchorCoord, '马年吉祥', anchorGi);
+          return;
         }
-        if (!pCenter) scheduleAutoReturnToNational();
+        
+        if (!Number.isFinite(pZoom)) {
+          console.warn('无法计算省份缩放级别:', id, pZoom);
+          scheduleAutoReturnToNational();
+          return;
+        }
+        
+        console.log('省份聚焦:', id, matched.name, '中心点:', pCenter, '缩放:', pZoom);
+        
+        await animateGeoViewTo(pCenter, pZoom, 680);
+        
+        if (!isChartUsable()) return;
+        
+        const a = resolveAnchorForLevel('province', id, pCenter);
+        const anchorCoord = a?.coord || pCenter;
+        const anchorGi = Number.isFinite(Number(a?.geoIndex)) ? Number(a.geoIndex) : 0;
+        
+        scheduleAutoReturnToNational();
+        await playFireworkAt(anchorCoord, '马年吉祥', anchorGi, matched.name || '', nickname);
         return;
       }
 
@@ -2610,73 +3243,128 @@
       if (!pId) return;
       await drillToProvinceByCode(pId, { animate: true });
 
-      // 第一步：省级提示 + 等待（让两段动画间隔拉长）
-      const pName = provinceFeatureNameById.get(pId) || litRegionsMetaById[pId]?.name || '';
-      const pFeature = provinceFeatureById.get(pId) || null;
-      const pCoord = featureCenterFromGeometry(pFeature) || pickFeatureCoord(pFeature);
-      if (pCoord && pName) {
-        showFocusLabel(pName, pCoord, 1000);
-        await delay(1000);
-      } else {
-        await delay(1000);
-      }
-
       if (lvl === 'city') {
         currentMapLevel = 'city';
         selectedCity = null;
         await focusCityByCode(id, { animate: true });
 
-        // 第二步：市级提示 + 等待
         const cFeature = cityFeatureById.get(id) || null;
         const cCoord = featureCenterFromGeometry(cFeature) || pickFeatureCoord(cFeature) || pickMatchedCoord(matched);
         const cName = cityFeatureNameById.get(id) || litRegionsMetaById[id]?.name || matched.name || '';
+        
         if (cCoord && cName) {
           const a = resolveAnchorForLevel('city', id, cCoord);
           const anchorCoord = a?.coord || cCoord;
           const anchorGi = Number.isFinite(Number(a?.geoIndex)) ? Number(a.geoIndex) : 1;
-          showFocusLabel(cName, anchorCoord, 1000);
-          await delay(1050);
-          clearFocusLabel();
           scheduleAutoReturnToNational();
-          await playFireworkAt(anchorCoord, '马年吉祥', anchorGi);
-          await delay(1050);
+          await playFireworkAt(anchorCoord, '马年吉祥', anchorGi, cName, nickname);
+        } else {
+          scheduleAutoReturnToNational();
         }
-        if (!(cCoord && cName)) scheduleAutoReturnToNational();
         return;
       }
 
       const cId = cityIdFromAny(id);
       if (!cId) return;
-      await drillToCityByCode(cId, { animate: true });
+      
+      const mySeq = ++drillSeq;
+      
+      selectedProvince = { code: pId, name: provinceFeatureNameById.get(pId) || pId };
+      selectedCity = { code: cId, name: cityFeatureNameById.get(cId) || cId };
+      currentMapLevel = 'district';
+      currentViewRegion = id;
+      UIController.updateLevelIndicator('layered', `${selectedProvince.name} - ${selectedCity.name} - 区县级边界`);
 
-      // 第二步：市级提示 + 等待
-      const cFeature = cityFeatureById.get(cId) || null;
-      const cCoord = featureCenterFromGeometry(cFeature) || pickFeatureCoord(cFeature);
-      const cName = cityFeatureNameById.get(cId) || litRegionsMetaById[cId]?.name || '';
-      if (cCoord && cName) {
-        showFocusLabel(cName, cCoord, 1000);
-        await delay(1000);
-      } else {
-        await delay(1000);
+      await new Promise(requestAnimationFrame);
+
+      const cacheKeyCity = `province:${pId}:citiesGeo`;
+      const cacheKeyDistrict = `city:${cId}:districtsGeo`;
+      
+      const [citiesGeojson, districtsGeojson] = await Promise.all([
+        (async () => {
+          if (geoDataCache[cacheKeyCity]) return geoDataCache[cacheKeyCity];
+          const response = await fetch(`/api/geo/province/${pId}`);
+          if (!response.ok) throw new Error(`市级边界接口返回 HTTP ${response.status}`);
+          const geojson = await response.json();
+          geoDataCache[cacheKeyCity] = geojson;
+          return geojson;
+        })(),
+        (async () => {
+          if (geoDataCache[cacheKeyDistrict]) return geoDataCache[cacheKeyDistrict];
+          const response = await fetch(`/api/geo/city/${cId}`);
+          if (!response.ok) throw new Error(`区县边界接口返回 HTTP ${response.status}`);
+          const geojson = await response.json();
+          geoDataCache[cacheKeyDistrict] = geojson;
+          return geojson;
+        })()
+      ]);
+      
+      if (mySeq !== drillSeq) return;
+
+      selectedCitiesGeoJson = citiesGeojson;
+      
+      const mapNameCity = `cities_${pId}`;
+      echarts.registerMap(mapNameCity, citiesGeojson);
+      cityFeatureNameById = buildFeatureNameById(citiesGeojson);
+      cityFeatureById = new Map();
+      for (const f of (Array.isArray(citiesGeojson?.features) ? citiesGeojson.features : [])) {
+        const props = f?.properties || {};
+        const id = pickAdcode(props);
+        if (!id) continue;
+        if (!cityFeatureById.has(String(id))) cityFeatureById.set(String(id), f);
       }
 
-      await focusDistrictByCode(id, { animate: true });
+      const mapNameDistrict = `districts_${cId}`;
+      echarts.registerMap(mapNameDistrict, districtsGeojson);
+      districtFeatureNameById = buildFeatureNameById(districtsGeojson);
+      districtFeatureById = new Map();
+      for (const f of (Array.isArray(districtsGeojson?.features) ? districtsGeojson.features : [])) {
+        const props = f?.properties || {};
+        const id = pickAdcode(props);
+        if (!id) continue;
+        if (!districtFeatureById.has(String(id))) districtFeatureById.set(String(id), f);
+      }
 
-      // 第三步：区县提示
       const dFeature = districtFeatureById.get(id) || null;
       const dCoord = featureCenterFromGeometry(dFeature) || pickFeatureCoord(dFeature) || pickMatchedCoord(matched);
       const dName = districtFeatureNameById.get(id) || litRegionsMetaById[id]?.name || matched.name || '';
-      if (dCoord && dName) {
-        const a = resolveAnchorForLevel('district', id, dCoord);
-        const anchorCoord = a?.coord || dCoord;
-        const anchorGi = Number.isFinite(Number(a?.geoIndex)) ? Number(a.geoIndex) : 2;
-        showFocusLabel(dName, anchorCoord, 1000);
-        await delay(1050);
-        clearFocusLabel();
+      const dZoom = computeDistrictTargetZoom(dFeature);
+      
+      if (!dCoord || !dName || !Number.isFinite(dZoom)) {
         scheduleAutoReturnToNational();
-        await playFireworkAt(anchorCoord, '马年吉祥', anchorGi);
+        return;
       }
-      if (!(dCoord && dName)) scheduleAutoReturnToNational();
+      
+      chart.setOption(
+        {
+          geo: [
+            { silent: false, roam: true, emphasis: { label: { show: true } } },
+            {
+              show: true,
+              map: mapNameCity,
+              roam: false,
+              silent: false
+            },
+            {
+              show: true,
+              map: mapNameDistrict,
+              roam: false,
+              silent: false
+            }
+          ]
+        },
+        { notMerge: false }
+      );
+      
+      await animateGeoViewTo(dCoord, dZoom, 1200);
+      
+      updateMap();
+      
+      const a = resolveAnchorForLevel('district', id, dCoord);
+      const anchorCoord = a?.coord || dCoord;
+      const anchorGi = Number.isFinite(Number(a?.geoIndex)) ? Number(a.geoIndex) : 2;
+      scheduleAutoReturnToNational();
+      await playFireworkAt(anchorCoord, '马年吉祥', anchorGi, dName, nickname);
     }
 
     async function selectProvinceByCoord(coord) {
@@ -3176,12 +3864,12 @@
         geoUpdate.emphasis = {
           label: {
             show: true,
-            color: '#667eea',
+            color: '#ff6b6b',
             fontSize: 14
           },
           itemStyle: {
-            areaColor: 'rgba(102, 126, 234, 0.1)',
-            borderColor: '#667eea',
+            areaColor: 'rgba(255, 107, 107, 0.1)',
+            borderColor: '#ff6b6b',
             borderWidth: 2
           }
         };
@@ -3196,8 +3884,8 @@
         },
         emphasis: {
           itemStyle: {
-            areaColor: 'rgba(102, 126, 234, 0.15)',
-            borderColor: '#667eea',
+            areaColor: 'rgba(255, 107, 107, 0.15)',
+            borderColor: '#ff6b6b',
             borderWidth: 1
           }
         }
@@ -3663,7 +4351,7 @@
         updateMap();
 
         // 手机端点亮后：入队自动聚焦（省/市/区县），3 秒无人操作回全国
-        enqueueAutoFocus(d.matched, d.cascadeIds);
+        enqueueAutoFocus(d.matched, d.cascadeIds, d.nickname);
 
         showToast(`${d.nickname} 点亮了 ${displayPlace}`);
       } else if (message.type === 'submission') {

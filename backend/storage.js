@@ -3,9 +3,14 @@ const path = require('path');
 
 const DATA_DIR = path.join(__dirname, '../data');
 const STATE_FILE = path.join(DATA_DIR, 'state.json');
+const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+if (!fs.existsSync(BACKUP_DIR)) {
+  fs.mkdirSync(BACKUP_DIR, { recursive: true });
 }
 
 const DEFAULT_STATE = {
@@ -231,6 +236,107 @@ function getHistory(limit = 50) {
   return state.submissions.slice(-l);
 }
 
+function createBackup(name = null) {
+  const state = loadState();
+  const timestamp = new Date();
+  const backupName = name || `backup_${timestamp.getFullYear()}${String(timestamp.getMonth() + 1).padStart(2, '0')}${String(timestamp.getDate()).padStart(2, '0')}_${String(timestamp.getHours()).padStart(2, '0')}${String(timestamp.getMinutes()).padStart(2, '0')}${String(timestamp.getSeconds()).padStart(2, '0')}`;
+  const backupFile = path.join(BACKUP_DIR, `${backupName}.json`);
+
+  const backupData = {
+    name: backupName,
+    timestamp: timestamp.toISOString(),
+    litRegionsCount: Object.keys(state.litRegionState || {}).length,
+    submissionsCount: state.submissions.length,
+    lastSubmissionTime: state.submissions.length > 0 ? state.submissions[state.submissions.length - 1].createdAt : null,
+    data: state
+  };
+
+  fs.writeFileSync(backupFile, JSON.stringify(backupData, null, 2), 'utf8');
+  return backupData;
+}
+
+function getBackups() {
+  if (!fs.existsSync(BACKUP_DIR)) {
+    return [];
+  }
+
+  const files = fs.readdirSync(BACKUP_DIR)
+    .filter(f => f.endsWith('.json'))
+    .map(f => {
+      const filePath = path.join(BACKUP_DIR, f);
+      const stats = fs.statSync(filePath);
+      try {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const data = JSON.parse(content);
+        return {
+          name: data.name || f.replace('.json', ''),
+          timestamp: data.timestamp || stats.mtime.toISOString(),
+          litRegionsCount: data.litRegionsCount || 0,
+          submissionsCount: data.submissionsCount || 0,
+          lastSubmissionTime: data.lastSubmissionTime || null,
+          fileSize: stats.size
+        };
+      } catch (error) {
+        return {
+          name: f.replace('.json', ''),
+          timestamp: stats.mtime.toISOString(),
+          litRegionsCount: 0,
+          submissionsCount: 0,
+          lastSubmissionTime: null,
+          fileSize: stats.size,
+          error: '无法读取备份文件'
+        };
+      }
+    })
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  return files;
+}
+
+function restoreBackup(backupName) {
+  const backupFile = path.join(BACKUP_DIR, `${backupName}.json`);
+
+  if (!fs.existsSync(backupFile)) {
+    throw new Error('备份文件不存在');
+  }
+
+  const content = fs.readFileSync(backupFile, 'utf8');
+  const backupData = JSON.parse(content);
+
+  if (!backupData.data) {
+    throw new Error('备份数据格式错误');
+  }
+
+  saveState(backupData.data);
+  return backupData;
+}
+
+function deleteBackup(backupName) {
+  const backupFile = path.join(BACKUP_DIR, `${backupName}.json`);
+
+  if (!fs.existsSync(backupFile)) {
+    throw new Error('备份文件不存在');
+  }
+
+  fs.unlinkSync(backupFile);
+  return true;
+}
+
+function deleteSubmission(id) {
+  const state = loadState();
+  const index = state.submissions.findIndex(s => s.id === id);
+
+  if (index === -1) {
+    throw new Error('记录不存在');
+  }
+
+  const submission = state.submissions[index];
+  state.submissions.splice(index, 1);
+
+  saveState(state);
+  return submission;
+}
+
 module.exports = {
   PROVINCES,
   loadState,
@@ -241,5 +347,10 @@ module.exports = {
   litRegion,
   resetState,
   getStats,
-  getHistory
+  getHistory,
+  createBackup,
+  getBackups,
+  restoreBackup,
+  deleteBackup,
+  deleteSubmission
 };

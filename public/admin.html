@@ -153,6 +153,244 @@
       text-align: center;
       font-size: 14px;
     }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: rgba(49, 74, 67, 0.95);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255, 215, 0, 0.3);
+      width: 90%;
+      max-width: 400px;
+    }
+
+    .modal-content.large {
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-title {
+      color: #ffd700;
+      font-size: 1.5em;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .modal-btn.confirm {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+    }
+
+    .modal-btn.cancel {
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+      color: white;
+    }
+
+    .modal-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .submissions-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .submission-item {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .submission-info {
+      flex: 1;
+    }
+
+    .submission-nickname {
+      color: #1e3a8a;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .submission-place {
+      color: #dc143c;
+      font-size: 0.9em;
+    }
+
+    .submission-time {
+      color: #888;
+      font-size: 0.8em;
+      margin-top: 4px;
+    }
+
+    .edit-btn {
+      padding: 6px 12px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-left: 10px;
+    }
+
+    .edit-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+    }
+
+    .submissions-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .submissions-list::-webkit-scrollbar-track {
+      background: rgba(220, 20, 60, 0.1);
+      border-radius: 3px;
+    }
+
+    .submissions-list::-webkit-scrollbar-thumb {
+      background: rgba(220, 20, 60, 0.5);
+      border-radius: 3px;
+    }
+
+    .submissions-list::-webkit-scrollbar-thumb:hover {
+      background: rgba(220, 20, 60, 0.7);
+    }
+
+    .backups-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .backup-item {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 215, 0, 0.2);
+    }
+
+    .backup-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .backup-name {
+      color: #ffd700;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .backup-time {
+      color: #888;
+      font-size: 12px;
+    }
+
+    .backup-info {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .backup-info-item {
+      color: #ccc;
+      font-size: 13px;
+    }
+
+    .backup-info-item span {
+      color: #4ecdc4;
+      font-weight: bold;
+    }
+
+    .backup-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .backup-btn {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .backup-btn.restore {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+    }
+
+    .backup-btn.delete {
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+      color: white;
+    }
+
+    .backup-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .backups-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .backups-list::-webkit-scrollbar-track {
+      background: rgba(220, 20, 60, 0.1);
+      border-radius: 3px;
+    }
+
+    .backups-list::-webkit-scrollbar-thumb {
+      background: rgba(220, 20, 60, 0.5);
+      border-radius: 3px;
+    }
+
+    .backups-list::-webkit-scrollbar-thumb:hover {
+      background: rgba(220, 20, 60, 0.7);
+    }
   </style>
 </head>
 <body>
@@ -178,15 +416,116 @@
       <button class="admin-btn" onclick="initializeMapView()">初始化视图</button>
       <button class="admin-btn danger" onclick="resetMap()">重置数据</button>
       <button class="admin-btn secondary" onclick="downloadStats()">导出数据</button>
+      <button class="admin-btn secondary" onclick="openImportModal()">导入数据</button>
+      <button class="admin-btn secondary" onclick="openBackupModal()">备份恢复</button>
+      <button class="admin-btn secondary" onclick="openSubmissionsModal()">提交记录</button>
+      <button class="admin-btn secondary" onclick="openGenerateModal()">生成随机请求</button>
       <button class="logout-btn" onclick="handleLogout()">退出登录</button>
       <div class="success-message" id="successMessage"></div>
     </div>
+
+    <!-- 提交记录模态框 -->
+    <div class="modal-overlay" id="submissionsModal">
+      <div class="modal-content large">
+        <h2 class="modal-title">提交记录</h2>
+        <div class="submissions-list" id="submissionsList"></div>
+        <div class="modal-buttons">
+          <button class="modal-btn cancel" onclick="closeSubmissionsModal()">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 编辑模态框 -->
+    <div class="modal-overlay" id="editModal">
+      <div class="modal-content">
+        <h2 class="modal-title">编辑提交记录</h2>
+        <div class="form-group">
+          <label for="editNickname">昵称</label>
+          <input type="text" id="editNickname" placeholder="请输入昵称">
+        </div>
+        <div class="form-group">
+          <label for="editPlaceName">地区名称</label>
+          <input type="text" id="editPlaceName" placeholder="请输入地区名称">
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn cancel" onclick="closeEditModal()">取消</button>
+          <button class="modal-btn confirm" onclick="saveEdit()">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 生成随机请求模态框 -->
+    <div class="modal-overlay" id="generateModal">
+      <div class="modal-content large">
+        <h2 class="modal-title">生成随机点亮请求</h2>
+        <div class="form-group">
+          <label for="generateNickname">昵称（多个用逗号分隔）</label>
+          <input type="text" id="generateNickname" placeholder="例如：张三,李四,王五">
+        </div>
+        <div class="form-group">
+          <label for="generatePlaceName">地区名称（多个用逗号分隔）</label>
+          <input type="text" id="generatePlaceName" placeholder="例如：北京市,上海市,广州市">
+        </div>
+        <div class="form-group">
+          <label for="generateCount">生成数量</label>
+          <input type="number" id="generateCount" min="1" max="100" value="10">
+        </div>
+        <div class="form-group">
+          <label for="generateInterval">间隔时间（毫秒）</label>
+          <input type="number" id="generateInterval" min="100" max="5000" value="500">
+        </div>
+        <div class="form-group">
+          <label>或上传 Excel 文件</label>
+          <input type="file" id="excelFile" accept=".xlsx,.xls" onchange="handleExcelUpload(event)">
+          <div style="font-size: 12px; color: #888; margin-top: 5px;">
+            Excel 格式：第一列为昵称，第二列为地区名称
+          </div>
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn cancel" onclick="closeGenerateModal()">取消</button>
+          <button class="modal-btn confirm" onclick="generateRandomRequests()">生成</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 导入数据模态框 -->
+    <div class="modal-overlay" id="importModal">
+      <div class="modal-content large">
+        <h2 class="modal-title">导入数据</h2>
+        <div class="form-group">
+          <label>选择 JSON 文件</label>
+          <input type="file" id="importFile" accept=".json" onchange="handleImportFile(event)">
+          <div style="font-size: 12px; color: #888; margin-top: 5px;">
+            导入前会自动创建备份，备份名称格式：pre_import_YYYYMMDD_HHMMSS
+          </div>
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn cancel" onclick="closeImportModal()">取消</button>
+          <button class="modal-btn confirm" onclick="importData()">导入</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 备份恢复模态框 -->
+    <div class="modal-overlay" id="backupModal">
+      <div class="modal-content large">
+        <h2 class="modal-title">备份恢复</h2>
+        <div class="backups-list" id="backupsList"></div>
+        <div class="modal-buttons">
+          <button class="modal-btn cancel" onclick="closeBackupModal()">关闭</button>
+        </div>
+      </div>
+    </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     let ws = null;
     let isAuthenticated = false;
+    let submissions = [];
+    let currentEditId = null;
+    let excelData = [];
 
     // 处理登录
     function handleLogin() {
@@ -194,31 +533,603 @@
       const password = document.getElementById('password').value;
       const errorMessage = document.getElementById('errorMessage');
 
-      if (username === 'admin' && password === 'admin') {
-        // 登录成功
-        isAuthenticated = true;
-        document.getElementById('loginPanel').style.display = 'none';
-        document.getElementById('adminPanel').style.display = 'block';
-        errorMessage.textContent = '';
-        initWebSocket();
-      } else {
-        // 登录失败
-        errorMessage.textContent = '账号或密码错误';
+      if (!username || !password) {
+        errorMessage.textContent = '请输入用户名和密码';
+        return;
+      }
+
+      fetch('/api/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, password })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.ok) {
+          isAuthenticated = true;
+          document.getElementById('loginPanel').style.display = 'none';
+          document.getElementById('adminPanel').style.display = 'block';
+          errorMessage.textContent = '';
+          initWebSocket();
+        } else {
+          errorMessage.textContent = data.message || '登录失败';
+        }
+      })
+      .catch(error => {
+        console.error('登录失败:', error);
+        errorMessage.textContent = '登录失败，请稍后重试';
+      });
+    }
+
+    // 检查登录状态
+    function checkLoginStatus() {
+      fetch('/api/admin/check', {
+        method: 'GET'
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.ok) {
+          isAuthenticated = true;
+          document.getElementById('loginPanel').style.display = 'none';
+          document.getElementById('adminPanel').style.display = 'block';
+          initWebSocket();
+        }
+      })
+      .catch(error => {
+        console.error('检查登录状态失败:', error);
+      });
+    }
+
+    // 处理未授权
+    function handleUnauthorized() {
+      isAuthenticated = false;
+      document.getElementById('adminPanel').style.display = 'none';
+      document.getElementById('loginPanel').style.display = 'block';
+      document.getElementById('errorMessage').textContent = '登录已过期，请重新登录';
+      if (ws) {
+        ws.close();
+        ws = null;
       }
     }
 
     // 处理退出
     function handleLogout() {
-      isAuthenticated = false;
-      document.getElementById('adminPanel').style.display = 'none';
-      document.getElementById('loginPanel').style.display = 'block';
-      document.getElementById('username').value = '';
-      document.getElementById('password').value = '';
-      document.getElementById('successMessage').textContent = '';
-      if (ws) {
-        ws.close();
-        ws = null;
+      fetch('/api/admin/logout', {
+        method: 'POST'
+      })
+      .then(() => {
+        isAuthenticated = false;
+        document.getElementById('adminPanel').style.display = 'none';
+        document.getElementById('loginPanel').style.display = 'block';
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+        document.getElementById('successMessage').textContent = '';
+        if (ws) {
+          ws.close();
+          ws = null;
+        }
+      })
+      .catch(error => {
+        console.error('退出登录失败:', error);
+      });
+    }
+
+    // 打开提交记录模态框
+    function openSubmissionsModal() {
+      loadSubmissions();
+      document.getElementById('submissionsModal').style.display = 'flex';
+    }
+
+    // 关闭提交记录模态框
+    function closeSubmissionsModal() {
+      document.getElementById('submissionsModal').style.display = 'none';
+    }
+
+    // 打开导入数据模态框
+    function openImportModal() {
+      document.getElementById('importModal').style.display = 'flex';
+    }
+
+    // 关闭导入数据模态框
+    function closeImportModal() {
+      document.getElementById('importModal').style.display = 'none';
+      document.getElementById('importFile').value = '';
+    }
+
+    // 处理导入文件
+    function handleImportFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          document.getElementById('importFile').dataset.data = JSON.stringify(data);
+          document.getElementById('successMessage').textContent = '文件解析成功，点击导入按钮完成导入';
+          setTimeout(() => {
+            document.getElementById('successMessage').textContent = '';
+          }, 3000);
+        } catch (error) {
+          console.error('解析 JSON 失败:', error);
+          alert('解析 JSON 文件失败: ' + error.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // 导入数据
+    function importData() {
+      const importFile = document.getElementById('importFile');
+      const data = importFile.dataset.data;
+
+      if (!data) {
+        alert('请先选择 JSON 文件');
+        return;
       }
+
+      if (!confirm('导入数据会覆盖现有数据，导入前会自动创建备份，确定要继续吗？')) {
+        return;
+      }
+
+      fetch('/api/admin/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: data
+      })
+      .then(response => {
+        if (response.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (!data) return;
+        if (data.ok) {
+          closeImportModal();
+          document.getElementById('successMessage').textContent = '导入数据成功';
+          setTimeout(() => {
+            document.getElementById('successMessage').textContent = '';
+          }, 3000);
+        } else {
+          alert('导入失败: ' + (data.message || '未知错误'));
+        }
+      })
+      .catch(error => {
+        console.error('导入失败:', error);
+        alert('导入失败: ' + error.message);
+      });
+    }
+
+    // 打开备份恢复模态框
+    function openBackupModal() {
+      loadBackups();
+      document.getElementById('backupModal').style.display = 'flex';
+    }
+
+    // 关闭备份恢复模态框
+    function closeBackupModal() {
+      document.getElementById('backupModal').style.display = 'none';
+    }
+
+    // 加载备份列表
+    function loadBackups() {
+      fetch('/api/admin/backups', {
+        method: 'GET'
+      })
+      .then(response => {
+        if (response.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (!data) return;
+        if (data.ok) {
+          renderBackups(data.data || []);
+        } else {
+          alert('加载备份列表失败: ' + (data.message || '未知错误'));
+        }
+      })
+      .catch(error => {
+        console.error('加载备份列表失败:', error);
+        alert('加载备份列表失败: ' + error.message);
+      });
+    }
+
+    // 渲染备份列表
+    function renderBackups(backups) {
+      const list = document.getElementById('backupsList');
+      if (!list) return;
+
+      if (backups.length === 0) {
+        list.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">暂无备份</div>';
+        return;
+      }
+
+      list.innerHTML = backups.map(backup => {
+        const time = new Date(backup.timestamp).toLocaleString('zh-CN');
+        const lastSubmissionTime = backup.lastSubmissionTime ? new Date(backup.lastSubmissionTime).toLocaleString('zh-CN') : '无';
+        return `
+          <div class="backup-item">
+            <div class="backup-header">
+              <div class="backup-name">${backup.name}</div>
+              <div class="backup-time">${time}</div>
+            </div>
+            <div class="backup-info">
+              <div class="backup-info-item">点亮地区数：<span>${backup.litRegionsCount}</span></div>
+              <div class="backup-info-item">提交记录数：<span>${backup.submissionsCount}</span></div>
+              <div class="backup-info-item">最后点亮时间：<span>${lastSubmissionTime}</span></div>
+              <div class="backup-info-item">文件大小：<span>${(backup.fileSize / 1024).toFixed(2)} KB</span></div>
+            </div>
+            <div class="backup-actions">
+              <button class="backup-btn restore" onclick="restoreBackup('${backup.name}')">恢复</button>
+              <button class="backup-btn delete" onclick="deleteBackup('${backup.name}')">删除</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 恢复备份
+    function restoreBackup(backupName) {
+      if (!confirm(`确定要恢复备份 "${backupName}" 吗？恢复前会自动创建备份，现有数据将被覆盖！`)) {
+        return;
+      }
+
+      fetch('/api/admin/restore', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ backupName })
+      })
+      .then(response => {
+        if (response.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (!data) return;
+        if (data.ok) {
+          loadBackups();
+          document.getElementById('successMessage').textContent = '恢复备份成功';
+          setTimeout(() => {
+            document.getElementById('successMessage').textContent = '';
+          }, 3000);
+        } else {
+          alert('恢复失败: ' + (data.message || '未知错误'));
+        }
+      })
+      .catch(error => {
+        console.error('恢复失败:', error);
+        alert('恢复失败: ' + error.message);
+      });
+    }
+
+    // 删除备份
+    function deleteBackup(backupName) {
+      if (!confirm(`确定要删除备份 "${backupName}" 吗？此操作不可恢复！`)) {
+        return;
+      }
+
+      fetch(`/api/admin/backups/${encodeURIComponent(backupName)}`, {
+        method: 'DELETE'
+      })
+      .then(response => {
+        if (response.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (!data) return;
+        if (data.ok) {
+          loadBackups();
+          document.getElementById('successMessage').textContent = '删除备份成功';
+          setTimeout(() => {
+            document.getElementById('successMessage').textContent = '';
+          }, 3000);
+        } else {
+          alert('删除失败: ' + (data.message || '未知错误'));
+        }
+      })
+      .catch(error => {
+        console.error('删除失败:', error);
+        alert('删除失败: ' + error.message);
+      });
+    }
+
+    // 加载提交记录
+    function loadSubmissions() {
+      if (!isAuthenticated) return;
+
+      fetch('/api/admin/submissions', {
+        method: 'GET'
+      })
+      .then(response => {
+        if (response.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (!data) return;
+        if (data.ok) {
+          submissions = data.data || [];
+          renderSubmissions();
+        } else {
+          document.getElementById('successMessage').textContent = '加载提交记录失败: ' + (data.message || '未知错误');
+        }
+      })
+      .catch(error => {
+        console.error('加载提交记录失败:', error);
+        document.getElementById('successMessage').textContent = '加载提交记录失败: ' + error.message;
+      });
+    }
+
+    // 渲染提交记录列表
+    function renderSubmissions() {
+      const list = document.getElementById('submissionsList');
+      if (!list) return;
+
+      if (submissions.length === 0) {
+        list.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">暂无提交记录</div>';
+        return;
+      }
+
+      list.innerHTML = submissions.map(sub => {
+        const time = new Date(sub.createdAt).toLocaleString('zh-CN');
+        const matchedName = sub.matched ? sub.matched.name : '未匹配';
+        return `
+          <div class="submission-item">
+            <div class="submission-info">
+              <div class="submission-nickname">${sub.nickname}</div>
+              <div class="submission-place">${sub.inputPlaceName} ${sub.matched ? '→ ' + matchedName : ''}</div>
+              <div class="submission-time">${time}</div>
+            </div>
+            <div style="display: flex; gap: 5px;">
+              <button class="edit-btn" onclick="openEditModal('${sub.id}')">编辑</button>
+              <button class="edit-btn" style="background: linear-gradient(135deg, #f093fb, #f5576c);" onclick="deleteSubmission('${sub.id}')">删除</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 删除提交记录
+    function deleteSubmission(id) {
+      if (!confirm('确定要删除这条记录吗？此操作不可恢复！')) {
+        return;
+      }
+
+      fetch(`/api/admin/submissions/${id}`, {
+        method: 'DELETE'
+      })
+      .then(response => {
+        if (response.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (!data) return;
+        if (data.ok) {
+          submissions = submissions.filter(s => s.id !== id);
+          renderSubmissions();
+          document.getElementById('successMessage').textContent = '删除记录成功';
+          setTimeout(() => {
+            document.getElementById('successMessage').textContent = '';
+          }, 3000);
+        } else {
+          alert('删除失败: ' + (data.message || '未知错误'));
+        }
+      })
+      .catch(error => {
+        console.error('删除失败:', error);
+        alert('删除失败: ' + error.message);
+      });
+    }
+
+    // 打开编辑模态框
+    function openEditModal(id) {
+      const submission = submissions.find(s => s.id === id);
+      if (!submission) return;
+
+      currentEditId = id;
+      document.getElementById('editNickname').value = submission.nickname;
+      document.getElementById('editPlaceName').value = submission.inputPlaceName;
+      document.getElementById('editModal').style.display = 'flex';
+    }
+
+    // 关闭编辑模态框
+    function closeEditModal() {
+      currentEditId = null;
+      document.getElementById('editNickname').value = '';
+      document.getElementById('editPlaceName').value = '';
+      document.getElementById('editModal').style.display = 'none';
+    }
+
+    // 保存编辑
+    function saveEdit() {
+      if (!currentEditId) return;
+
+      const nickname = document.getElementById('editNickname').value;
+      const inputPlaceName = document.getElementById('editPlaceName').value;
+
+      if (!nickname || !inputPlaceName) {
+        alert('昵称和地区名称不能为空');
+        return;
+      }
+
+      fetch(`/api/admin/submissions/${currentEditId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ nickname, inputPlaceName })
+      })
+      .then(response => {
+        if (response.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (!data) return;
+        if (data.ok) {
+          const index = submissions.findIndex(s => s.id === currentEditId);
+          if (index !== -1) {
+            submissions[index] = data.data;
+            renderSubmissions();
+          }
+          closeEditModal();
+          document.getElementById('successMessage').textContent = '修改成功';
+          setTimeout(() => {
+            document.getElementById('successMessage').textContent = '';
+          }, 3000);
+        } else {
+          alert('修改失败: ' + (data.message || '未知错误'));
+        }
+      })
+      .catch(error => {
+        console.error('修改失败:', error);
+        alert('修改失败: ' + error.message);
+      });
+    }
+
+    // 打开生成随机请求模态框
+    function openGenerateModal() {
+      document.getElementById('generateModal').style.display = 'flex';
+    }
+
+    // 关闭生成随机请求模态框
+    function closeGenerateModal() {
+      document.getElementById('generateModal').style.display = 'none';
+      document.getElementById('generateNickname').value = '';
+      document.getElementById('generatePlaceName').value = '';
+      document.getElementById('generateCount').value = '10';
+      document.getElementById('generateInterval').value = '500';
+      document.getElementById('excelFile').value = '';
+      excelData = [];
+    }
+
+    // 处理 Excel 上传
+    function handleExcelUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+          excelData = jsonData.filter(row => row.length >= 2).map(row => ({
+            nickname: String(row[0] || '').trim(),
+            placeName: String(row[1] || '').trim()
+          })).filter(item => item.nickname && item.placeName);
+
+          if (excelData.length > 0) {
+            document.getElementById('generateNickname').value = excelData.map(d => d.nickname).join(',');
+            document.getElementById('generatePlaceName').value = excelData.map(d => d.placeName).join(',');
+            document.getElementById('generateCount').value = excelData.length;
+            document.getElementById('successMessage').textContent = `成功导入 ${excelData.length} 条数据`;
+            setTimeout(() => {
+              document.getElementById('successMessage').textContent = '';
+            }, 3000);
+          } else {
+            alert('Excel 文件格式不正确或没有有效数据');
+          }
+        } catch (error) {
+          console.error('解析 Excel 失败:', error);
+          alert('解析 Excel 文件失败: ' + error.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // 生成随机点亮请求
+    function generateRandomRequests() {
+      const nicknameInput = document.getElementById('generateNickname').value;
+      const placeNameInput = document.getElementById('generatePlaceName').value;
+      const count = parseInt(document.getElementById('generateCount').value) || 10;
+      const interval = parseInt(document.getElementById('generateInterval').value) || 500;
+
+      const nicknames = nicknameInput.split(',').map(n => n.trim()).filter(n => n);
+      const placeNames = placeNameInput.split(',').map(p => p.trim()).filter(p => p);
+
+      if (nicknames.length === 0 || placeNames.length === 0) {
+        alert('请输入昵称和地区名称');
+        return;
+      }
+
+      if (count < 1 || count > 100) {
+        alert('生成数量必须在 1-100 之间');
+        return;
+      }
+
+      let generated = 0;
+      const generateOne = () => {
+        if (generated >= count) {
+          document.getElementById('successMessage').textContent = `成功生成 ${count} 条请求`;
+          setTimeout(() => {
+            document.getElementById('successMessage').textContent = '';
+          }, 3000);
+          return;
+        }
+
+        const nickname = nicknames[Math.floor(Math.random() * nicknames.length)];
+        const placeName = placeNames[Math.floor(Math.random() * placeNames.length)];
+
+        fetch('/api/lights', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ nickname, placeName })
+        })
+        .then(response => response.json())
+        .then(data => {
+          generated++;
+          if (generated < count) {
+            setTimeout(generateOne, interval);
+          } else {
+            document.getElementById('successMessage').textContent = `成功生成 ${count} 条请求`;
+            setTimeout(() => {
+              document.getElementById('successMessage').textContent = '';
+            }, 3000);
+          }
+        })
+        .catch(error => {
+          console.error('生成请求失败:', error);
+          generated++;
+          if (generated < count) {
+            setTimeout(generateOne, interval);
+          } else {
+            document.getElementById('successMessage').textContent = `生成完成，部分请求可能失败`;
+            setTimeout(() => {
+              document.getElementById('successMessage').textContent = '';
+            }, 3000);
+          }
+        });
+      };
+
+      generateOne();
     }
 
     // 初始化WebSocket连接
@@ -241,6 +1152,11 @@
           try {
             const message = JSON.parse(data);
             console.log('📨 收到WebSocket消息:', message);
+
+            // 监听新的提交记录，自动刷新列表
+            if (message.type === 'submission' || message.type === 'region_lit') {
+              loadSubmissions();
+            }
           } catch (error) {
             console.error('❌ JSON解析失败:', error);
             console.error('原始消息:', data);
@@ -252,6 +1168,11 @@
             try {
               const message = JSON.parse(e.target.result);
               console.log('📨 收到WebSocket Blob消息:', message);
+
+              // 监听新的提交记录，自动刷新列表
+              if (message.type === 'submission' || message.type === 'region_lit') {
+                loadSubmissions();
+              }
             } catch (error) {
               console.error('❌ Blob JSON解析失败:', error);
               console.error('Blob内容:', e.target.result);
@@ -322,24 +1243,30 @@
     // 重置数据
     function resetMap() {
       if (!isAuthenticated) return;
-      
+
       if (confirm('确定要重置所有数据吗？此操作不可恢复！')) {
         fetch('/api/admin/reset', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ password: 'admin' })
+          }
         })
-        .then(response => response.json())
+        .then(response => {
+          if (response.status === 401) {
+            handleUnauthorized();
+            return;
+          }
+          return response.json();
+        })
         .then(data => {
+          if (!data) return;
           if (data.ok) {
             document.getElementById('successMessage').textContent = '重置数据成功';
             setTimeout(() => {
               document.getElementById('successMessage').textContent = '';
             }, 3000);
           } else {
-            document.getElementById('successMessage').textContent = '操作失败: ' + (data.error || '未知错误');
+            document.getElementById('successMessage').textContent = '操作失败: ' + (data.message || '未知错误');
           }
         })
         .catch(error => {
@@ -352,12 +1279,19 @@
     // 导出数据
     function downloadStats() {
       if (!isAuthenticated) return;
-      
+
       fetch('/api/stats', {
         method: 'GET'
       })
-      .then(response => response.json())
+      .then(response => {
+        if (response.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+        return response.json();
+      })
       .then(data => {
+        if (!data) return;
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -385,6 +1319,11 @@
           handleLogin();
         }
       }
+    });
+
+    // 页面加载时检查登录状态
+    window.addEventListener('load', () => {
+      checkLoginStatus();
     });
   </script>
 </body>

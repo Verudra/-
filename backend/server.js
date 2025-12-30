@@ -17,6 +17,13 @@ const wss = new WebSocket.Server({ server });
 
 const geoIndex = createGeoIndex();
 
+// 登录状态缓存（IP -> 登录时间）
+const loginSessions = new Map();
+const SESSION_TIMEOUT = 15 * 60 * 1000;
+
+// 自动备份定时器（每5分钟）
+const AUTO_BACKUP_INTERVAL = 5 * 60 * 1000;
+
 // 缓存：全国市级/区县级合并 GeoJSON（按需生成，避免启动时阻塞）
 let cachedAllCitiesGeoJson = null;
 let cachedAllDistrictsGeoJson = null;
@@ -404,13 +411,63 @@ app.get('/api/qrcode', async (req, res) => {
   }
 });
 
-// API: 管理员重置（简单口令保护）
+// API: 管理员登录验证
+app.post('/api/admin/login', (req, res) => {
+  const { username, password } = req.body;
+  const clientIp = req.ip || req.connection?.remoteAddress;
+  const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
+
+  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+    logger.warn('登录失败：用户名或密码错误');
+    return res.status(401).json({ ok: false, message: '用户名或密码错误' });
+  }
+
+  loginSessions.set(clientIp, Date.now());
+  logger.success('管理员登录成功');
+  res.json({ ok: true, message: '登录成功' });
+});
+
+// API: 检查登录状态
+app.get('/api/admin/check', (req, res) => {
+  const clientIp = req.ip || req.connection?.remoteAddress;
+  const loginTime = loginSessions.get(clientIp);
+
+  if (!loginTime) {
+    return res.json({ ok: false, message: '未登录' });
+  }
+
+  const elapsed = Date.now() - loginTime;
+  if (elapsed > SESSION_TIMEOUT) {
+    loginSessions.delete(clientIp);
+    return res.json({ ok: false, message: '登录已过期' });
+  }
+
+  const remainingTime = Math.ceil((SESSION_TIMEOUT - elapsed) / 1000);
+  res.json({ ok: true, remainingTime });
+});
+
+// API: 退出登录
+app.post('/api/admin/logout', (req, res) => {
+  const clientIp = req.ip || req.connection?.remoteAddress;
+  loginSessions.delete(clientIp);
+  logger.success('管理员退出登录');
+  res.json({ ok: true, message: '退出成功' });
+});
+
+// API: 管理员重置（需要登录状态）
 app.post('/api/admin/reset', (req, res) => {
-  const { password } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '2025';
-  if (password !== ADMIN_PASSWORD) {
-    logger.warn('重置失败：口令错误');
-    return res.status(403).json({ ok: false, message: '口令错误' });
+  const clientIp = req.ip || req.connection?.remoteAddress;
+  const loginTime = loginSessions.get(clientIp);
+
+  if (!loginTime) {
+    return res.status(401).json({ ok: false, message: '未登录' });
+  }
+
+  const elapsed = Date.now() - loginTime;
+  if (elapsed > SESSION_TIMEOUT) {
+    loginSessions.delete(clientIp);
+    return res.status(401).json({ ok: false, message: '登录已过期' });
   }
 
   try {
@@ -426,6 +483,293 @@ app.post('/api/admin/reset', (req, res) => {
   } catch (error) {
     logger.error(`重置失败: ${error.message}`);
     res.status(500).json({ ok: false, message: '重置失败' });
+  }
+});
+
+// API: 获取所有提交记录（需要登录状态）
+app.get('/api/admin/submissions', (req, res) => {
+  const clientIp = req.ip || req.connection?.remoteAddress;
+  const loginTime = loginSessions.get(clientIp);
+
+  if (!loginTime) {
+    return res.status(401).json({ ok: false, message: '未登录' });
+  }
+
+  const elapsed = Date.now() - loginTime;
+  if (elapsed > SESSION_TIMEOUT) {
+    loginSessions.delete(clientIp);
+    return res.status(401).json({ ok: false, message: '登录已过期' });
+  }
+
+  try {
+    const state = storage.getState();
+    const submissions = state.submissions || [];
+    res.json({ ok: true, total: submissions.length, data: submissions });
+  } catch (error) {
+    logger.error(`获取提交记录失败: ${error.message}`);
+    res.status(500).json({ ok: false, message: '获取提交记录失败' });
+  }
+});
+
+// API: 修改提交记录（需要登录状态）
+app.put('/api/admin/submissions/:id', (req, res) => {
+  const clientIp = req.ip || req.connection?.remoteAddress;
+  const loginTime = loginSessions.get(clientIp);
+
+  if (!loginTime) {
+    return res.status(401).json({ ok: false, message: '未登录' });
+  }
+
+  const elapsed = Date.now() - loginTime;
+  if (elapsed > SESSION_TIMEOUT) {
+    loginSessions.delete(clientIp);
+    return res.status(401).json({ ok: false, message: '登录已过期' });
+  }
+
+  const { id } = req.params;
+  const { nickname, inputPlaceName } = req.body;
+
+  if (!id) {
+    return res.status(400).json({ ok: false, message: '记录ID不能为空' });
+  }
+
+  if (!nickname || typeof nickname !== 'string') {
+    return res.status(400).json({ ok: false, message: '昵称参数无效' });
+  }
+  const cleanNickname = nickname.trim();
+  if (cleanNickname.length === 0) {
+    return res.status(400).json({ ok: false, message: '昵称不能为空' });
+  }
+  if (cleanNickname.length > 20) {
+    return res.status(400).json({ ok: false, message: '昵称太长，最多20个字符' });
+  }
+
+  if (!inputPlaceName || typeof inputPlaceName !== 'string') {
+    return res.status(400).json({ ok: false, message: '地区名称参数无效' });
+  }
+
+  try {
+    const state = storage.getState();
+    const submission = state.submissions.find(s => s.id === id);
+
+    if (!submission) {
+      return res.status(404).json({ ok: false, message: '记录不存在' });
+    }
+
+    submission.nickname = cleanNickname;
+    submission.inputPlaceName = inputPlaceName.trim();
+
+    storage.setState(state);
+
+    logger.success(`修改提交记录成功: ${id}`);
+    res.json({ ok: true, message: '修改成功', data: submission });
+  } catch (error) {
+    logger.error(`修改提交记录失败: ${error.message}`);
+    res.status(500).json({ ok: false, message: '修改失败' });
+  }
+});
+
+// API: 导出统计数据（需要登录状态）
+app.get('/api/stats', (req, res) => {
+  const clientIp = req.ip || req.connection?.remoteAddress;
+  const loginTime = loginSessions.get(clientIp);
+
+  if (!loginTime) {
+    return res.status(401).json({ ok: false, message: '未登录' });
+  }
+
+  const elapsed = Date.now() - loginTime;
+  if (elapsed > SESSION_TIMEOUT) {
+    loginSessions.delete(clientIp);
+    return res.status(401).json({ ok: false, message: '登录已过期' });
+  }
+
+  try {
+    const state = storage.getState();
+    const stats = {
+      timestamp: new Date().toISOString(),
+      litRegions: Object.keys(state.litRegionState).length,
+      totalSubmissions: state.submissions.length,
+      submissions: state.submissions.map(s => ({
+        id: s.id,
+        nickname: s.nickname,
+        inputPlaceName: s.inputPlaceName,
+        matchedName: s.matched ? s.matched.name : null,
+        createdAt: s.createdAt
+      }))
+    };
+    res.json(stats);
+  } catch (error) {
+    logger.error(`导出统计数据失败: ${error.message}`);
+    res.status(500).json({ ok: false, message: '导出失败' });
+  }
+});
+
+// API: 获取备份列表（需要登录状态）
+app.get('/api/admin/backups', (req, res) => {
+  const clientIp = req.ip || req.connection?.remoteAddress;
+  const loginTime = loginSessions.get(clientIp);
+
+  if (!loginTime) {
+    return res.status(401).json({ ok: false, message: '未登录' });
+  }
+
+  const elapsed = Date.now() - loginTime;
+  if (elapsed > SESSION_TIMEOUT) {
+    loginSessions.delete(clientIp);
+    return res.status(401).json({ ok: false, message: '登录已过期' });
+  }
+
+  try {
+    const backups = storage.getBackups();
+    res.json({ ok: true, data: backups });
+  } catch (error) {
+    logger.error(`获取备份列表失败: ${error.message}`);
+    res.status(500).json({ ok: false, message: '获取备份列表失败' });
+  }
+});
+
+// API: 恢复备份（需要登录状态）
+app.post('/api/admin/restore', (req, res) => {
+  const clientIp = req.ip || req.connection?.remoteAddress;
+  const loginTime = loginSessions.get(clientIp);
+
+  if (!loginTime) {
+    return res.status(401).json({ ok: false, message: '未登录' });
+  }
+
+  const elapsed = Date.now() - loginTime;
+  if (elapsed > SESSION_TIMEOUT) {
+    loginSessions.delete(clientIp);
+    return res.status(401).json({ ok: false, message: '登录已过期' });
+  }
+
+  const { backupName } = req.body;
+
+  if (!backupName) {
+    return res.status(400).json({ ok: false, message: '备份名称不能为空' });
+  }
+
+  try {
+    const timestamp = new Date();
+    const preRestoreBackupName = `pre_restore_${timestamp.getFullYear()}${String(timestamp.getMonth() + 1).padStart(2, '0')}${String(timestamp.getDate()).padStart(2, '0')}_${String(timestamp.getHours()).padStart(2, '0')}${String(timestamp.getMinutes()).padStart(2, '0')}${String(timestamp.getSeconds()).padStart(2, '0')}`;
+    storage.createBackup(preRestoreBackupName);
+
+    const backupData = storage.restoreBackup(backupName);
+
+    broadcastToClients({
+      type: 'reset',
+      data: { timestamp: new Date().toISOString() }
+    });
+
+    logger.success(`恢复备份成功: ${backupName}`);
+    res.json({ ok: true, message: '恢复成功', data: backupData });
+  } catch (error) {
+    logger.error(`恢复备份失败: ${error.message}`);
+    res.status(500).json({ ok: false, message: error.message || '恢复失败' });
+  }
+});
+
+// API: 删除备份（需要登录状态）
+app.delete('/api/admin/backups/:name', (req, res) => {
+  const clientIp = req.ip || req.connection?.remoteAddress;
+  const loginTime = loginSessions.get(clientIp);
+
+  if (!loginTime) {
+    return res.status(401).json({ ok: false, message: '未登录' });
+  }
+
+  const elapsed = Date.now() - loginTime;
+  if (elapsed > SESSION_TIMEOUT) {
+    loginSessions.delete(clientIp);
+    return res.status(401).json({ ok: false, message: '登录已过期' });
+  }
+
+  const { name } = req.params;
+
+  if (!name) {
+    return res.status(400).json({ ok: false, message: '备份名称不能为空' });
+  }
+
+  try {
+    storage.deleteBackup(name);
+    logger.success(`删除备份成功: ${name}`);
+    res.json({ ok: true, message: '删除成功' });
+  } catch (error) {
+    logger.error(`删除备份失败: ${error.message}`);
+    res.status(500).json({ ok: false, message: error.message || '删除失败' });
+  }
+});
+
+// API: 导入数据（需要登录状态）
+app.post('/api/admin/import', (req, res) => {
+  const clientIp = req.ip || req.connection?.remoteAddress;
+  const loginTime = loginSessions.get(clientIp);
+
+  if (!loginTime) {
+    return res.status(401).json({ ok: false, message: '未登录' });
+  }
+
+  const elapsed = Date.now() - loginTime;
+  if (elapsed > SESSION_TIMEOUT) {
+    loginSessions.delete(clientIp);
+    return res.status(401).json({ ok: false, message: '登录已过期' });
+  }
+
+  const { data } = req.body;
+
+  if (!data) {
+    return res.status(400).json({ ok: false, message: '导入数据不能为空' });
+  }
+
+  try {
+    const timestamp = new Date();
+    const preImportBackupName = `pre_import_${timestamp.getFullYear()}${String(timestamp.getMonth() + 1).padStart(2, '0')}${String(timestamp.getDate()).padStart(2, '0')}_${String(timestamp.getHours()).padStart(2, '0')}${String(timestamp.getMinutes()).padStart(2, '0')}${String(timestamp.getSeconds()).padStart(2, '0')}`;
+    storage.createBackup(preImportBackupName);
+
+    storage.setState(data);
+
+    broadcastToClients({
+      type: 'reset',
+      data: { timestamp: new Date().toISOString() }
+    });
+
+    logger.success('导入数据成功');
+    res.json({ ok: true, message: '导入成功' });
+  } catch (error) {
+    logger.error(`导入数据失败: ${error.message}`);
+    res.status(500).json({ ok: false, message: error.message || '导入失败' });
+  }
+});
+
+// API: 删除提交记录（需要登录状态）
+app.delete('/api/admin/submissions/:id', (req, res) => {
+  const clientIp = req.ip || req.connection?.remoteAddress;
+  const loginTime = loginSessions.get(clientIp);
+
+  if (!loginTime) {
+    return res.status(401).json({ ok: false, message: '未登录' });
+  }
+
+  const elapsed = Date.now() - loginTime;
+  if (elapsed > SESSION_TIMEOUT) {
+    loginSessions.delete(clientIp);
+    return res.status(401).json({ ok: false, message: '登录已过期' });
+  }
+
+  const { id } = req.params;
+
+  if (!id) {
+    return res.status(400).json({ ok: false, message: '记录ID不能为空' });
+  }
+
+  try {
+    const submission = storage.deleteSubmission(id);
+    logger.success(`删除提交记录成功: ${id}`);
+    res.json({ ok: true, message: '删除成功', data: submission });
+  } catch (error) {
+    logger.error(`删除提交记录失败: ${error.message}`);
+    res.status(500).json({ ok: false, message: error.message || '删除失败' });
   }
 });
 
@@ -475,4 +819,14 @@ server.on('error', (err) => {
 server.listen(PORT, () => {
   logger.success(`服务器已启动: http://localhost:${PORT}`);
   logger.info(`Geo 数据: ${geoIndex.getMeta().source}`);
+
+  // 启动自动备份定时器
+  setInterval(() => {
+    try {
+      const backup = storage.createBackup();
+      logger.success(`自动备份成功: ${backup.name}`);
+    } catch (error) {
+      logger.error(`自动备份失败: ${error.message}`);
+    }
+  }, AUTO_BACKUP_INTERVAL);
 });
