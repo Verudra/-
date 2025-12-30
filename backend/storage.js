@@ -144,13 +144,14 @@ function setState(newState) {
   return saveState(newState);
 }
 
-function addSubmission(nickname, inputPlaceName, matched, clientIp) {
+function addSubmission(nickname, inputPlaceName, matched, clientIp, blessing = null) {
   const state = loadState();
   const submission = {
     id: Date.now().toString() + Math.random().toString(36).slice(2, 9),
     nickname,
     inputPlaceName,
     matched: matched || null,
+    blessing,
     createdAt: new Date().toISOString(),
     clientIp
   };

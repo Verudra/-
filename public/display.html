@@ -439,6 +439,16 @@
       text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
     }
 
+    .history-item .blessing {
+      color: #dc143c;
+      font-size: 0.9em;
+      /* font-style: italic; */
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .history-card {
       position: absolute;
       left: 0;
@@ -575,6 +585,19 @@
       background: rgba(255, 255, 255, 0.15);
       color: #333333;
       border: 1px solid #d42517;
+    }
+
+    .college-name {
+      position: absolute;
+      font-family: KaiTi, '楷体', serif;
+      bottom: 20px;
+      left: 20px;
+      font-size: 1.6em;
+      color: #de2a18;
+      font-weight: 500;
+      z-index: 100;
+      font-weight: bold;
+      /* text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8); */
     }
 
     .status-dot {
@@ -803,6 +826,70 @@
       margin: 5px 0;
       line-height: 1.6;
     }
+
+    .participants-list {
+      max-height: 500px;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .participant-item {
+      background: rgba(139, 0, 0, 0.1);
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      border: 1px solid rgba(139, 0, 0, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .participant-item:hover {
+      background: rgba(139, 0, 0, 0.2);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .participant-nickname {
+      font-weight: bold;
+      color: #8b0000;
+      font-size: 1.1em;
+      margin-bottom: 5px;
+    }
+
+    .participant-place {
+      color: #333;
+      font-size: 1em;
+      margin-bottom: 5px;
+    }
+
+    .participant-blessing {
+      color: #666;
+      font-size: 0.95em;
+      margin-bottom: 5px;
+      font-style: italic;
+    }
+
+    .participant-time {
+      color: #999;
+      font-size: 0.85em;
+    }
+
+    .participants-list::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .participants-list::-webkit-scrollbar-track {
+      background: rgba(139, 0, 0, 0.1);
+      border-radius: 4px;
+    }
+
+    .participants-list::-webkit-scrollbar-thumb {
+      background: rgba(139, 0, 0, 0.5);
+      border-radius: 4px;
+    }
+
+    .participants-list::-webkit-scrollbar-thumb:hover {
+      background: rgba(139, 0, 0, 0.7);
+    }
     
     /* 统计项可点击样式 */
     .stat-item {
@@ -877,6 +964,9 @@
           <span id="statusText">连接中...</span>
         </div>
 
+        <!-- 学院名称（左下角） -->
+        <div class="college-name">计算机科学与技术学院/人工智能学院</div>
+
       </div>
 
       <!-- 右侧栏目：已点亮 + 点亮记录 -->
@@ -896,7 +986,7 @@
 
         <div class="side-panel">
           <div class="history-list">
-            <div class="history-title">点亮记录</div>
+            <div class="history-title">点亮与祝福</div>
             <div class="history-box" id="historyBox"></div>
             <div class="history-card-container" id="historyCardContainer" style="position: relative; height: 40px; overflow: hidden;"></div>
           </div>
@@ -1519,7 +1609,7 @@
       const t0 = performance.now();
       const riseMs = 800;
       const boomMs = 600;
-      const blessMs = 2000;
+      const blessMs = 4000;
       const totalMs = riseMs + boomMs + blessMs;
       return new Promise(resolve => {
         function step(now) {
@@ -1640,8 +1730,8 @@
             );
           } else {
             const t = clamp((dt - riseMs - boomMs) / blessMs, 0, 1);
-            const k = easeInOutCubic(t);
-            const opacity = t < 0.7 ? k : 1;
+            const k = easeOutQuad(t);
+            const opacity = t < 0.15 ? k : 1;
             chart.setOption(
               {
                 graphic: [
@@ -1984,19 +2074,41 @@
       const content = document.getElementById('participantsContent');
       
       // 生成HTML
-      content.innerHTML = `
-        <div class="stat-detail">
-          <h3>参与人次统计</h3>
-          <p><strong>总参与人次:</strong> ${document.getElementById('totalCount').textContent}</p>
-          <p><strong>已点亮区域:</strong> ${document.getElementById('litCount').textContent}</p>
-          <p><strong>平均点亮次数:</strong> ${litRegionState ? (Object.keys(litRegionState).length > 0 ? Math.round(parseInt(document.getElementById('totalCount').textContent) / Object.keys(litRegionState).length * 10) / 10 : 0) : 0}</p>
-        </div>
-        <div class="stat-detail">
-          <h3>参与说明</h3>
-          <p>参与人次统计包括所有成功提交的点亮请求，无论是否成功点亮区域。</p>
-          <p>已点亮区域统计包括所有成功点亮的不同区域。</p>
-        </div>
-      `;
+      const list = (historyItems || []).slice(-200).reverse();
+      
+      if (list.length === 0) {
+        content.innerHTML = '<p style="text-align: center; opacity: 0.8; padding: 20px;">暂无参与记录</p>';
+      } else {
+        const items = list.map(item => {
+          const nickname = String(item?.nickname || '匿名');
+          const place = String(item?.inputPlaceName || item?.matched?.name || '');
+          const blessing = item?.blessing;
+          const time = item?.createdAt ? new Date(item.createdAt).toLocaleString('zh-CN') : '';
+          
+          let html = `
+            <div class="participant-item">
+              <div class="participant-nickname">${escapeHtml(nickname)}</div>
+              <div class="participant-place">点亮 ${escapeHtml(place)}</div>
+          `;
+          
+          if (blessing) {
+            html += `<div class="participant-blessing">祝: ${escapeHtml(blessing)}</div>`;
+          }
+          
+          if (time) {
+            html += `<div class="participant-time">${time}</div>`;
+          }
+          
+          html += '</div>';
+          return html;
+        }).join('');
+        
+        content.innerHTML = `
+          <div class="participants-list">
+            ${items}
+          </div>
+        `;
+      }
       
       openModal('participantsModal');
     }
@@ -4001,7 +4113,17 @@
         const historyItem = document.createElement('div');
         historyItem.className = 'history-item';
         const matchedName = item.matched?.name || '未匹配';
-        historyItem.innerHTML = `<span class="name">${item.nickname}</span> 点亮了 <span class="place">${matchedName}</span>`;
+
+        // 如果匹配失败，不显示
+        if (!item.matched) {
+          return;
+        }
+
+        let html = `<span class="name">${item.nickname}</span> 点亮了 <span class="place">${matchedName}</span>`;
+        if (item.blessing) {
+          html += `<div class="blessing">祝: ${item.blessing}</div>`;
+        }
+        historyItem.innerHTML = html;
         historyBox.appendChild(historyItem);
       });
       
@@ -4175,7 +4297,7 @@
               animationDuration: 1000,
               animationEasing: 'ease-out',
               itemStyle: {
-                color: '#ffd700',
+                color: '#f9e8d0',
                 opacity: 0.9
               },
               emphasis: {
@@ -4210,7 +4332,7 @@
                 brushType: 'fill'
               },
               itemStyle: {
-                color: '#ffd700',
+                color: '#f2cac9',
                 opacity: 0.6
               },
               z: 10
@@ -4228,7 +4350,13 @@
           const nickname = String(x?.nickname || '匿名');
           // 需求：滚动记录始终显示用户输入（即使系统只能匹配到更高层级）
           const place = String(x?.inputPlaceName || x?.matched?.name || '');
-          return `<div class="history-item"><span class="name">${escapeHtml(nickname)}</span> 点亮 <span class="place">${escapeHtml(place)}</span></div>`;
+          const blessing = x?.blessing;
+          let html = `<div class="history-item"><span class="name">${escapeHtml(nickname)}</span> 点亮 <span class="place">${escapeHtml(place)}</span>`;
+          if (blessing) {
+            html += `<div class="blessing">祝: ${escapeHtml(blessing)}</div>`;
+          }
+          html += '</div>';
+          return html;
         })
         .join('');
     }
@@ -4345,7 +4473,7 @@
         const displayPlace = String(d.inputPlaceName || d.placeName || regionName);
 
         // push history：始终使用用户输入
-        historyItems.push({ nickname: d.nickname, inputPlaceName: displayPlace, matched: d.matched, createdAt: d.timestamp });
+        historyItems.push({ nickname: d.nickname, inputPlaceName: displayPlace, matched: d.matched, blessing: d.blessing, createdAt: d.timestamp });
         if (historyItems.length > 200) historyItems = historyItems.slice(-200);
         renderHistoryBox();
         updateMap();

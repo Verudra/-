@@ -295,6 +295,13 @@
       background: rgba(220, 20, 60, 0.7);
     }
 
+    .submission-blessing {
+      color: #4ecdc4;
+      font-size: 0.9em;
+      font-style: italic;
+      margin-top: 4px;
+    }
+
     .backups-list {
       max-height: 400px;
       overflow-y: auto;
@@ -418,7 +425,7 @@
       <button class="admin-btn secondary" onclick="downloadStats()">导出数据</button>
       <button class="admin-btn secondary" onclick="openImportModal()">导入数据</button>
       <button class="admin-btn secondary" onclick="openBackupModal()">备份恢复</button>
-      <button class="admin-btn secondary" onclick="openSubmissionsModal()">提交记录</button>
+      <button class="admin-btn secondary" onclick="openSubmissionsModal()">点亮与祝福</button>
       <button class="admin-btn secondary" onclick="openGenerateModal()">生成随机请求</button>
       <button class="logout-btn" onclick="handleLogout()">退出登录</button>
       <div class="success-message" id="successMessage"></div>
@@ -427,7 +434,7 @@
     <!-- 提交记录模态框 -->
     <div class="modal-overlay" id="submissionsModal">
       <div class="modal-content large">
-        <h2 class="modal-title">提交记录</h2>
+        <h2 class="modal-title">点亮与祝福</h2>
         <div class="submissions-list" id="submissionsList"></div>
         <div class="modal-buttons">
           <button class="modal-btn cancel" onclick="closeSubmissionsModal()">关闭</button>
@@ -446,6 +453,10 @@
         <div class="form-group">
           <label for="editPlaceName">地区名称</label>
           <input type="text" id="editPlaceName" placeholder="请输入地区名称">
+        </div>
+        <div class="form-group">
+          <label for="editBlessing">祝福语（选填）</label>
+          <input type="text" id="editBlessing" placeholder="请输入祝福语（最多50字）" maxlength="50">
         </div>
         <div class="modal-buttons">
           <button class="modal-btn cancel" onclick="closeEditModal()">取消</button>
@@ -467,6 +478,10 @@
           <input type="text" id="generatePlaceName" placeholder="例如：北京市,上海市,广州市">
         </div>
         <div class="form-group">
+          <label for="generateBlessing">祝福语（选填，多个用逗号分隔）</label>
+          <input type="text" id="generateBlessing" placeholder="例如：新年快乐,万事如意,心想事成">
+        </div>
+        <div class="form-group">
           <label for="generateCount">生成数量</label>
           <input type="number" id="generateCount" min="1" max="100" value="10">
         </div>
@@ -478,7 +493,7 @@
           <label>或上传 Excel 文件</label>
           <input type="file" id="excelFile" accept=".xlsx,.xls" onchange="handleExcelUpload(event)">
           <div style="font-size: 12px; color: #888; margin-top: 5px;">
-            Excel 格式：第一列为昵称，第二列为地区名称
+            Excel 格式：第一列为昵称，第二列为地区名称，第三列为祝福语（可选）
           </div>
         </div>
         <div class="modal-buttons">
@@ -883,19 +898,22 @@
       const list = document.getElementById('submissionsList');
       if (!list) return;
 
-      if (submissions.length === 0) {
+      const filteredSubmissions = submissions.filter(sub => sub.matched);
+
+      if (filteredSubmissions.length === 0) {
         list.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">暂无提交记录</div>';
         return;
       }
 
-      list.innerHTML = submissions.map(sub => {
+      list.innerHTML = filteredSubmissions.map(sub => {
         const time = new Date(sub.createdAt).toLocaleString('zh-CN');
         const matchedName = sub.matched ? sub.matched.name : '未匹配';
         return `
           <div class="submission-item">
             <div class="submission-info">
               <div class="submission-nickname">${sub.nickname}</div>
-              <div class="submission-place">${sub.inputPlaceName} ${sub.matched ? '→ ' + matchedName : ''}</div>
+              <div class="submission-place">${sub.inputPlaceName} → ${matchedName}</div>
+              ${sub.blessing ? `<div class="submission-blessing">💝 ${sub.blessing}</div>` : ''}
               <div class="submission-time">${time}</div>
             </div>
             <div style="display: flex; gap: 5px;">
@@ -950,6 +968,7 @@
       currentEditId = id;
       document.getElementById('editNickname').value = submission.nickname;
       document.getElementById('editPlaceName').value = submission.inputPlaceName;
+      document.getElementById('editBlessing').value = submission.blessing || '';
       document.getElementById('editModal').style.display = 'flex';
     }
 
@@ -958,6 +977,7 @@
       currentEditId = null;
       document.getElementById('editNickname').value = '';
       document.getElementById('editPlaceName').value = '';
+      document.getElementById('editBlessing').value = '';
       document.getElementById('editModal').style.display = 'none';
     }
 
@@ -967,6 +987,7 @@
 
       const nickname = document.getElementById('editNickname').value;
       const inputPlaceName = document.getElementById('editPlaceName').value;
+      const blessing = document.getElementById('editBlessing').value;
 
       if (!nickname || !inputPlaceName) {
         alert('昵称和地区名称不能为空');
@@ -978,7 +999,7 @@
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ nickname, inputPlaceName })
+        body: JSON.stringify({ nickname, inputPlaceName, blessing })
       })
       .then(response => {
         if (response.status === 401) {
@@ -1020,6 +1041,7 @@
       document.getElementById('generateModal').style.display = 'none';
       document.getElementById('generateNickname').value = '';
       document.getElementById('generatePlaceName').value = '';
+      document.getElementById('generateBlessing').value = '';
       document.getElementById('generateCount').value = '10';
       document.getElementById('generateInterval').value = '500';
       document.getElementById('excelFile').value = '';
@@ -1041,12 +1063,17 @@
 
           excelData = jsonData.filter(row => row.length >= 2).map(row => ({
             nickname: String(row[0] || '').trim(),
-            placeName: String(row[1] || '').trim()
+            placeName: String(row[1] || '').trim(),
+            blessing: row.length >= 3 ? String(row[2] || '').trim() : null
           })).filter(item => item.nickname && item.placeName);
 
           if (excelData.length > 0) {
             document.getElementById('generateNickname').value = excelData.map(d => d.nickname).join(',');
             document.getElementById('generatePlaceName').value = excelData.map(d => d.placeName).join(',');
+            const blessings = excelData.map(d => d.blessing).filter(b => b && b.trim());
+            if (blessings.length > 0) {
+              document.getElementById('generateBlessing').value = blessings.join(',');
+            }
             document.getElementById('generateCount').value = excelData.length;
             document.getElementById('successMessage').textContent = `成功导入 ${excelData.length} 条数据`;
             setTimeout(() => {
@@ -1067,11 +1094,13 @@
     function generateRandomRequests() {
       const nicknameInput = document.getElementById('generateNickname').value;
       const placeNameInput = document.getElementById('generatePlaceName').value;
+      const blessingInput = document.getElementById('generateBlessing').value;
       const count = parseInt(document.getElementById('generateCount').value) || 10;
       const interval = parseInt(document.getElementById('generateInterval').value) || 500;
 
       const nicknames = nicknameInput.split(',').map(n => n.trim()).filter(n => n);
       const placeNames = placeNameInput.split(',').map(p => p.trim()).filter(p => p);
+      const blessings = blessingInput.split(',').map(b => b.trim()).filter(b => b);
 
       if (nicknames.length === 0 || placeNames.length === 0) {
         alert('请输入昵称和地区名称');
@@ -1095,13 +1124,14 @@
 
         const nickname = nicknames[Math.floor(Math.random() * nicknames.length)];
         const placeName = placeNames[Math.floor(Math.random() * placeNames.length)];
+        const blessing = blessings.length > 0 ? blessings[Math.floor(Math.random() * blessings.length)] : null;
 
         fetch('/api/lights', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ nickname, placeName })
+          body: JSON.stringify({ nickname, placeName, blessing })
         })
         .then(response => response.json())
         .then(data => {

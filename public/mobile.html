@@ -263,6 +263,65 @@
     .error-text.show {
       display: block;
     }
+
+    .records-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .records-modal.show {
+      display: block;
+    }
+
+    .records-content {
+      background: white;
+      border-radius: 15px;
+      max-width: 500px;
+      margin: 0 auto;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .records-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid #e0e0e0;
+      position: sticky;
+      top: 0;
+      background: white;
+      z-index: 1;
+    }
+
+    .records-header h2 {
+      margin: 0;
+      font-size: 1.3em;
+      color: #333;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5em;
+      cursor: pointer;
+      color: #666;
+      padding: 5px;
+      line-height: 1;
+    }
+
+    .close-btn:hover {
+      color: #333;
+    }
   </style>
 </head>
 <body>
@@ -301,6 +360,19 @@
         <div id="placeError" class="error-text">请输入地区全名</div>
       </div>
 
+      <div class="form-group">
+        <label for="blessing">💝 祝福语（选填，50字以内）</label>
+        <input
+          type="text"
+          id="blessing"
+          placeholder="写下你的祝福..."
+          maxlength="50"
+        />
+        <div class="character-count">
+          <span id="blessingCount">0</span>/50
+        </div>
+      </div>
+
       <div class="button-group">
       <button type="submit" class="submit-btn" id="submitBtn">✨ 点亮我的家乡</button>
     </div>
@@ -320,15 +392,41 @@
     const messageEl = document.getElementById('message');
     const nicknameInput = document.getElementById('nickname');
     const placeInput = document.getElementById('placeName');
+    const blessingInput = document.getElementById('blessing');
     const submitBtn = document.getElementById('submitBtn');
     const successAnimation = document.getElementById('successAnimation');
     const charCountSpan = document.getElementById('charCount');
+    const blessingCountSpan = document.getElementById('blessingCount');
+
+    // 预设祝福语
+    const defaultBlessings = [
+      '新年快乐，万事如意！',
+      '阖家幸福，身体健康！',
+      '心想事成，前程似锦！',
+      '平安喜乐，好运连连！',
+      '工作顺利，财源广进！',
+      '学业进步，金榜题名！',
+      '爱情甜蜜，幸福美满！',
+      '生活美满，笑口常开！',
+      '身体健康，福寿安康！'
+    ];
+
+    // 敏感词列表
+    const sensitiveWords = [
+      '死', '杀', '暴力', '毒品', '赌博', '诈骗', '色情',
+      '傻', '笨', '蠢', '废物', '垃圾', '滚',
+      '妈的', '操', '日', '逼', '屄'
+    ];
 
     form.style.display = 'block';
 
     // 更新字符计数
     nicknameInput.addEventListener('input', () => {
       charCountSpan.textContent = nicknameInput.value.length;
+    });
+
+    blessingInput.addEventListener('input', () => {
+      blessingCountSpan.textContent = blessingInput.value.length;
     });
 
     // 显示消息
@@ -345,6 +443,17 @@
     // 防重复提交
     let isSubmitting = false;
 
+    // 检查敏感词
+    function containsSensitiveWord(text) {
+      const lowerText = text.toLowerCase();
+      return sensitiveWords.some(word => lowerText.includes(word));
+    }
+
+    // 获取随机祝福语
+    function getRandomBlessing() {
+      return defaultBlessings[Math.floor(Math.random() * defaultBlessings.length)];
+    }
+
     // 提交表单
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -356,6 +465,7 @@
 
       const nickname = nicknameInput.value.trim();
       const placeName = placeInput.value.trim();
+      let blessing = blessingInput.value.trim();
 
       // 验证
       if (!nickname) {
@@ -368,6 +478,18 @@
         showMessage('❌ 请输入地区全名', 'error');
         placeInput.focus();
         return;
+      }
+
+      // 敏感词检测
+      if (blessing && containsSensitiveWord(blessing)) {
+        showMessage('❌ 祝福语包含不合适的内容，请修改后重试', 'error');
+        blessingInput.focus();
+        return;
+      }
+
+      // 如果没有填写祝福语，使用随机祝福语
+      if (!blessing) {
+        blessing = getRandomBlessing();
       }
 
       // 禁用提交按钮
@@ -383,7 +505,8 @@
           },
           body: JSON.stringify({
             nickname,
-            placeName
+            placeName,
+            blessing
           })
         });
 
@@ -449,6 +572,7 @@
       successAnimation.classList.remove('show');
       form.reset();
       charCountSpan.textContent = '0';
+      blessingCountSpan.textContent = '0';
       isSubmitting = false;
       submitBtn.disabled = false;
       submitBtn.textContent = '✨ 点亮我的家乡';

@@ -274,7 +274,7 @@ app.get('/api/geo/districts/all', (req, res) => {
 
 // 新 API: 点亮（输入地区全名，后端自动匹配）
 app.post('/api/lights', submitRateLimitMiddleware, (req, res) => {
-  const { nickname, placeName } = req.body;
+  const { nickname, placeName, blessing } = req.body;
   const clientIp = req.ip || req.connection?.remoteAddress;
 
   if (!nickname || typeof nickname !== 'string') {
@@ -295,10 +295,29 @@ app.post('/api/lights', submitRateLimitMiddleware, (req, res) => {
   const cleanPlaceName = String(placeName).trim();
   const match = geoIndex.matchPlaceName(cleanPlaceName);
 
+  // 敏感词检测
+  const sensitiveWords = [
+    '死', '杀', '暴力', '毒品', '赌博', '诈骗', '色情',
+    '傻', '笨', '蠢', '废物', '垃圾', '滚',
+    '妈的', '操', '日', '逼', '屄'
+  ];
+
+  if (blessing && typeof blessing === 'string') {
+    const cleanBlessing = blessing.trim();
+    const lowerBlessing = cleanBlessing.toLowerCase();
+    const hasSensitiveWord = sensitiveWords.some(word => lowerBlessing.includes(word));
+    if (hasSensitiveWord) {
+      return res.status(400).json({ ok: false, message: '祝福语包含不合适的内容' });
+    }
+    if (cleanBlessing.length > 50) {
+      return res.status(400).json({ ok: false, message: '祝福语太长，最多50个字符' });
+    }
+  }
+
   try {
     // 即使匹配失败，也记录用户输入（用于右侧滚动记录展示）
     if (!match.ok || !match.matched) {
-      const submission = storage.addSubmission(cleanNickname, cleanPlaceName, null, clientIp);
+      const submission = storage.addSubmission(cleanNickname, cleanPlaceName, null, clientIp, blessing);
 
       broadcastToClients({
         type: 'submission',
@@ -306,6 +325,7 @@ app.post('/api/lights', submitRateLimitMiddleware, (req, res) => {
           nickname: cleanNickname,
           inputPlaceName: cleanPlaceName,
           matched: null,
+          blessing,
           createdAt: submission.createdAt,
           stats: {
             ...currentStats(),
@@ -328,7 +348,7 @@ app.post('/api/lights', submitRateLimitMiddleware, (req, res) => {
     const matched = match.matched;
 
     // 记录提交（保存最精确的匹配）
-    storage.addSubmission(cleanNickname, cleanPlaceName, matched, clientIp);
+    storage.addSubmission(cleanNickname, cleanPlaceName, matched, clientIp, blessing);
 
     // 点亮：匹配到区县时，同时累计省/市/区县；匹配到市则累计省/市
     const cascadeIds = buildLitCascadeIds(matched.id);
@@ -350,6 +370,7 @@ app.post('/api/lights', submitRateLimitMiddleware, (req, res) => {
         regionName: matched.name,
         inputPlaceName: cleanPlaceName,
         nickname: cleanNickname,
+        blessing,
         isFirstTime,
         timestamp: new Date().toISOString(),
         matched,
@@ -527,7 +548,7 @@ app.put('/api/admin/submissions/:id', (req, res) => {
   }
 
   const { id } = req.params;
-  const { nickname, inputPlaceName } = req.body;
+  const { nickname, inputPlaceName, blessing } = req.body;
 
   if (!id) {
     return res.status(400).json({ ok: false, message: '记录ID不能为空' });
@@ -548,6 +569,13 @@ app.put('/api/admin/submissions/:id', (req, res) => {
     return res.status(400).json({ ok: false, message: '地区名称参数无效' });
   }
 
+  if (blessing && typeof blessing === 'string') {
+    const cleanBlessing = blessing.trim();
+    if (cleanBlessing.length > 50) {
+      return res.status(400).json({ ok: false, message: '祝福语太长，最多50个字符' });
+    }
+  }
+
   try {
     const state = storage.getState();
     const submission = state.submissions.find(s => s.id === id);
@@ -558,6 +586,7 @@ app.put('/api/admin/submissions/:id', (req, res) => {
 
     submission.nickname = cleanNickname;
     submission.inputPlaceName = inputPlaceName.trim();
+    submission.blessing = blessing ? blessing.trim() : null;
 
     storage.setState(state);
 
@@ -590,11 +619,13 @@ app.get('/api/stats', (req, res) => {
       timestamp: new Date().toISOString(),
       litRegions: Object.keys(state.litRegionState).length,
       totalSubmissions: state.submissions.length,
+      litRegionState: state.litRegionState,
       submissions: state.submissions.map(s => ({
         id: s.id,
         nickname: s.nickname,
         inputPlaceName: s.inputPlaceName,
-        matchedName: s.matched ? s.matched.name : null,
+        matched: s.matched,
+        blessing: s.blessing,
         createdAt: s.createdAt
       }))
     };
@@ -727,7 +758,13 @@ app.post('/api/admin/import', (req, res) => {
     const preImportBackupName = `pre_import_${timestamp.getFullYear()}${String(timestamp.getMonth() + 1).padStart(2, '0')}${String(timestamp.getDate()).padStart(2, '0')}_${String(timestamp.getHours()).padStart(2, '0')}${String(timestamp.getMinutes()).padStart(2, '0')}${String(timestamp.getSeconds()).padStart(2, '0')}`;
     storage.createBackup(preImportBackupName);
 
-    storage.setState(data);
+    const importData = {
+      litRegionState: data.litRegionState || {},
+      submissions: data.submissions || [],
+      lastUpdated: new Date().toISOString()
+    };
+
+    storage.setState(importData);
 
     broadcastToClients({
       type: 'reset',
