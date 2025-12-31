@@ -1492,7 +1492,9 @@
       if (!coord) return Promise.resolve();
       clearFirework();
 
-      blessingText = getRandomBlessing();
+      if (!blessingText || blessingText === '马年吉祥') {
+        blessingText = getRandomBlessing();
+      }
 
       const mySeq = fireworkSeq;
       const groupId = `firework_${mySeq}`;
@@ -1609,7 +1611,7 @@
       const t0 = performance.now();
       const riseMs = 800;
       const boomMs = 600;
-      const blessMs = 4000;
+      const blessMs = 3000;
       const totalMs = riseMs + boomMs + blessMs;
       return new Promise(resolve => {
         function step(now) {
@@ -1929,13 +1931,17 @@
       cancelAutoReturn();
       autoReturnActive = true;
       autoReturnCancelledByUser = false;
+      const riseMs = 800;
+      const boomMs = 600;
+      const blessMs = 3000;
+      const totalMs = riseMs + boomMs + blessMs;
       autoReturnTimer = setTimeout(async () => {
         if (autoReturnCancelledByUser) return;
         autoReturnActive = false;
         clearFocusLabel();
         clearFirework();
         await goToInitialView({ showToast: false });
-      }, 3000);
+      }, totalMs);
     }
 
     function buildFeatureNameById(geojson) {
@@ -2079,14 +2085,15 @@
       if (list.length === 0) {
         content.innerHTML = '<p style="text-align: center; opacity: 0.8; padding: 20px;">暂无参与记录</p>';
       } else {
-        const items = list.map(item => {
+        const items = list.map((item, index) => {
           const nickname = String(item?.nickname || '匿名');
           const place = String(item?.inputPlaceName || item?.matched?.name || '');
           const blessing = item?.blessing;
           const time = item?.createdAt ? new Date(item.createdAt).toLocaleString('zh-CN') : '';
+          const matched = item?.matched;
           
           let html = `
-            <div class="participant-item">
+            <div class="participant-item" data-index="${index}" style="cursor: pointer; transition: background-color 0.2s;">
               <div class="participant-nickname">${escapeHtml(nickname)}</div>
               <div class="participant-place">点亮 ${escapeHtml(place)}</div>
           `;
@@ -2108,6 +2115,28 @@
             ${items}
           </div>
         `;
+        
+        // 为每个记录项添加点击事件
+        const participantItems = content.querySelectorAll('.participant-item');
+        participantItems.forEach(item => {
+          item.addEventListener('click', () => {
+            const index = parseInt(item.getAttribute('data-index'));
+            const historyItem = list[index];
+            if (historyItem?.matched) {
+              closeModal();
+              autoFocusToMatched(historyItem.matched, null, historyItem.nickname, historyItem.blessing);
+            }
+          });
+          
+          // 添加悬停效果
+          item.addEventListener('mouseenter', () => {
+            item.style.backgroundColor = 'rgba(255, 183, 77, 0.1)';
+          });
+          
+          item.addEventListener('mouseleave', () => {
+            item.style.backgroundColor = '';
+          });
+        });
       }
       
       openModal('participantsModal');
@@ -3299,7 +3328,7 @@
       updateMap();
     }
 
-    async function autoFocusToMatched(matched, cascadeIds, nickname = '') {
+    async function autoFocusToMatched(matched, cascadeIds, nickname = '', blessing = '') {
       if (!matched) return;
       if (!isChartUsable()) return;
 
@@ -3347,7 +3376,7 @@
         const anchorGi = Number.isFinite(Number(a?.geoIndex)) ? Number(a.geoIndex) : 0;
         
         scheduleAutoReturnToNational();
-        await playFireworkAt(anchorCoord, '马年吉祥', anchorGi, matched.name || '', nickname);
+        await playFireworkAt(anchorCoord, blessing || '马年吉祥', anchorGi, matched.name || '', nickname);
         return;
       }
 
@@ -3369,7 +3398,7 @@
           const anchorCoord = a?.coord || cCoord;
           const anchorGi = Number.isFinite(Number(a?.geoIndex)) ? Number(a.geoIndex) : 1;
           scheduleAutoReturnToNational();
-          await playFireworkAt(anchorCoord, '马年吉祥', anchorGi, cName, nickname);
+          await playFireworkAt(anchorCoord, blessing || '马年吉祥', anchorGi, cName, nickname);
         } else {
           scheduleAutoReturnToNational();
         }
@@ -3476,7 +3505,7 @@
       const anchorCoord = a?.coord || dCoord;
       const anchorGi = Number.isFinite(Number(a?.geoIndex)) ? Number(a.geoIndex) : 2;
       scheduleAutoReturnToNational();
-      await playFireworkAt(anchorCoord, '马年吉祥', anchorGi, dName, nickname);
+      await playFireworkAt(anchorCoord, blessing || '马年吉祥', anchorGi, dName, nickname);
     }
 
     async function selectProvinceByCoord(coord) {
@@ -4494,6 +4523,12 @@
         if (historyItems.length > 200) historyItems = historyItems.slice(-200);
         renderHistoryBox();
         showToast(`${d.nickname} 提交了 ${displayPlace}（未匹配）`);
+      } else if (message.type === 'replay') {
+        const d = message.data || {};
+        if (d.matched) {
+          enqueueAutoFocus(d.matched, d.cascadeIds, d.nickname, d.blessing);
+          showToast(`${d.nickname} 再次点亮了 ${d.inputPlaceName}`);
+        }
       } else if (message.type === 'reset') {
         litRegionState = {};
         litRegionsMetaById = {};

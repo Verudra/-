@@ -898,16 +898,15 @@
       const list = document.getElementById('submissionsList');
       if (!list) return;
 
-      const filteredSubmissions = submissions.filter(sub => sub.matched);
-
-      if (filteredSubmissions.length === 0) {
+      if (submissions.length === 0) {
         list.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">暂无提交记录</div>';
         return;
       }
 
-      list.innerHTML = filteredSubmissions.map(sub => {
+      list.innerHTML = submissions.map(sub => {
         const time = new Date(sub.createdAt).toLocaleString('zh-CN');
         const matchedName = sub.matched ? sub.matched.name : '未匹配';
+        const canReplay = sub.matched ? '' : 'disabled';
         return `
           <div class="submission-item">
             <div class="submission-info">
@@ -917,12 +916,49 @@
               <div class="submission-time">${time}</div>
             </div>
             <div style="display: flex; gap: 5px;">
+              <button class="edit-btn" style="background: linear-gradient(135deg, #4facfe, #00f2fe);" ${canReplay} onclick="replaySubmission('${sub.id}')">再次点亮</button>
               <button class="edit-btn" onclick="openEditModal('${sub.id}')">编辑</button>
               <button class="edit-btn" style="background: linear-gradient(135deg, #f093fb, #f5576c);" onclick="deleteSubmission('${sub.id}')">删除</button>
             </div>
           </div>
         `;
       }).join('');
+    }
+
+    // 再次点亮
+    function replaySubmission(id) {
+      const submission = submissions.find(s => s.id === id);
+      if (!submission) {
+        alert('未找到该记录');
+        return;
+      }
+
+      if (!submission.matched) {
+        alert('该记录未匹配到地区，无法再次点亮');
+        return;
+      }
+
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('WebSocket未连接，无法发送点亮请求');
+        return;
+      }
+
+      const message = {
+        type: 'replay',
+        data: {
+          nickname: submission.nickname,
+          inputPlaceName: submission.inputPlaceName,
+          matched: submission.matched,
+          blessing: submission.blessing,
+          cascadeIds: submission.cascadeIds
+        }
+      };
+
+      ws.send(JSON.stringify(message));
+      document.getElementById('successMessage').textContent = '已发送再次点亮请求';
+      setTimeout(() => {
+        document.getElementById('successMessage').textContent = '';
+      }, 3000);
     }
 
     // 删除提交记录

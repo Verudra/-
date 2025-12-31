@@ -147,9 +147,9 @@ wss.on('connection', (ws) => {
       const parsedMessage = JSON.parse(message);
       logger.info('解析后的消息:', parsedMessage);
       
-      // 如果是管理员命令，转发给所有客户端
-      if (parsedMessage.type === 'adminCommand') {
-        logger.info('检测到管理员命令:', parsedMessage.command);
+      // 如果是管理员命令或replay消息，转发给所有客户端
+      if (parsedMessage.type === 'adminCommand' || parsedMessage.type === 'replay') {
+        logger.info(`检测到${parsedMessage.type === 'adminCommand' ? '管理员命令' : 'replay'}消息`);
         logger.info(`准备转发给 ${connectedClients.size} 个连接的客户端`);
         
         // 转发给所有连接的客户端
